@@ -23,7 +23,7 @@ export function parseExcelData(workbook) {
         projects: [],
         assignments: [],
         skills: [],
-        portfolios: ['All Portfolios']
+        teams: ['All Teams']
     };
     
     if (workbook.Sheets['Employees']) {
@@ -33,6 +33,7 @@ export function parseExcelData(workbook) {
             name: row.Name || row.Employee,
             email: row.Email || '',
             maxHours: row['Max Hours'] || 40,
+            team: row.Team || 'Default',
             skills: parseSkills(row)
         }));
     }
@@ -44,7 +45,6 @@ export function parseExcelData(workbook) {
             name: row.Name || row.Project,
             startDate: parseDate(row['Start Date']),
             endDate: parseDate(row['End Date']),
-            portfolio: row.Portfolio || 'Default',
             requiredSkills: row['Required Skills'] ? row['Required Skills'].split(',').map(s => s.trim()) : []
         }));
     }
@@ -73,11 +73,11 @@ export function parseExcelData(workbook) {
         newData.skills = Array.from(uniqueSkills);
     }
     
-    const portfolios = new Set(['All Portfolios']);
-    newData.projects.forEach(p => {
-        if (p.portfolio) portfolios.add(p.portfolio);
+    const teams = new Set(['All Teams']);
+    newData.employees.forEach(e => {
+        if (e.team) teams.add(e.team);
     });
-    newData.portfolios = Array.from(portfolios);
+    newData.teams = Array.from(teams);
     
     updateScheduleData(newData);
 }
@@ -85,7 +85,7 @@ export function parseExcelData(workbook) {
 function parseSkills(row) {
     const skills = {};
     Object.keys(row).forEach(key => {
-        if (key !== 'Name' && key !== 'Employee' && key !== 'Email' && key !== 'ID' && key !== 'Max Hours') {
+        if (key !== 'Name' && key !== 'Employee' && key !== 'Email' && key !== 'ID' && key !== 'Max Hours' && key !== 'Team') {
             const value = row[key];
             if (value && value !== 'None') {
                 skills[key] = value;
@@ -104,7 +104,8 @@ export function exportToExcel() {
             ID: emp.id,
             Name: emp.name,
             Email: emp.email || '',
-            'Max Hours': emp.maxHours || 40
+            'Max Hours': emp.maxHours || 40,
+            Team: emp.team || 'Default'
         };
         
         // Add skill columns
@@ -126,7 +127,6 @@ export function exportToExcel() {
         Name: proj.name,
         'Start Date': proj.startDate ? proj.startDate.toISOString().split('T')[0] : '',
         'End Date': proj.endDate ? proj.endDate.toISOString().split('T')[0] : '',
-        Portfolio: proj.portfolio || '',
         'Required Skills': proj.requiredSkills ? proj.requiredSkills.join(', ') : ''
     }));
     

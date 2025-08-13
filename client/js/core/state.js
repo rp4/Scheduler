@@ -4,12 +4,12 @@ export const scheduleData = {
     projects: [],
     assignments: [],
     skills: [],
-    portfolios: ['All Portfolios']
+    teams: ['All Teams']
 };
 
 export let currentView = 'gantt';
 export let hoursView = 'employee';
-export let selectedPortfolio = 'all';
+export let selectedTeam = 'all';
 
 export function setCurrentView(view) {
     currentView = view;
@@ -21,9 +21,9 @@ export function setHoursView(view) {
     emit('hoursViewChanged', view);
 }
 
-export function setSelectedPortfolio(portfolio) {
-    selectedPortfolio = portfolio;
-    emit('portfolioChanged', portfolio);
+export function setSelectedTeam(team) {
+    selectedTeam = team;
+    emit('teamChanged', team);
 }
 
 export function updateScheduleData(newData) {
