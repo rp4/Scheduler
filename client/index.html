@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Scheduling Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Landing Page (Ultra lightweight - ~3KB) -->
+    <div id="landing" class="landing-page">
+        <div id="landingContent" class="landing-content">
+            <div class="landing-header">
+                <h1>📊 Resource Scheduling Tool</h1>
+                <p class="landing-subtitle">Optimize your team's time and skills allocation</p>
+            </div>
+            
+            <div class="landing-actions">
+                <div class="action-card">
+                    <h2>Get Started</h2>
+                    <p>Upload your Excel schedule to begin</p>
+                    <input type="file" id="landingFileInput" accept=".xlsx,.xls" style="display: none;">
+                    <button class="btn-primary landing-btn" id="landingUploadBtn">
+                        <span class="btn-icon">📁</span>
+                        Upload Excel File
+                    </button>
+                </div>
+                
+                <div class="divider">OR</div>
+                
+                <div class="action-card">
+                    <h2>Try It Out</h2>
+                    <p>Download a sample file to explore features</p>
+                    <button class="btn-secondary landing-btn" id="downloadSampleBtn">
+                        <span class="btn-icon">📥</span>
+                        Download Sample Excel
+                    </button>
+                </div>
+            </div>
+            
+            <div class="landing-features">
+                <div class="feature">
+                    <span class="feature-icon">📈</span>
+                    <h3>Gantt Charts</h3>
+                    <p>Visualize project timelines</p>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">⏰</span>
+                    <h3>Hours Tracking</h3>
+                    <p>Monitor resource allocation</p>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🎯</span>
+                    <h3>Skills Matrix</h3>
+                    <p>Match skills to projects</p>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🤖</span>
+                    <h3>AI Optimization</h3>
+                    <p>Smart schedule optimization</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Application (Loaded after file upload) -->
+    <div id="app" style="display: none;">
+        <div class="container">
+            <header>
+                <h1>Resource Scheduling</h1>
+                <div class="header-actions">
+                    <button class="btn-download" id="downloadBtn">📥 Download Excel</button>
+                    <button class="btn-optimize" id="optimizeBtn">🤖 Optimize Schedule</button>
+                </div>
+            </header>
+            
+            <div class="metrics-row">
+                <div class="metric-card">
+                    <h3>Overtime Hours</h3>
+                    <div class="metric-value orange" id="overtimeHours">0</div>
+                    <div class="metric-description">Hours over 40/week</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Resource Utilization</h3>
+                    <div class="metric-value blue" id="resourceUtilization">0%</div>
+                    <div class="metric-description">Average across all resources</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Skills Matching</h3>
+                    <div class="metric-value green" id="skillsMatching">0</div>
+                    <div class="metric-description">Total proficiency points</div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="portfolio-selector">
+                    <label for="portfolio">Portfolio:</label>
+                    <select id="portfolio">
+                        <option value="all">All Portfolios</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-button active" data-tab="gantt">Gantt Chart</button>
+                <button class="tab-button" data-tab="hours">Hours</button>
+                <button class="tab-button" data-tab="skills">Skills</button>
+            </div>
+            
+            <div class="tab-content" id="ganttTab">
+                <div id="ganttChart" class="gantt-container"></div>
+            </div>
+            
+            <div class="tab-content" id="hoursTab" style="display: none;">
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="employee">By Employee</button>
+                    <button class="view-btn" data-view="project">By Project</button>
+                </div>
+                <div id="hoursGrid" class="hours-grid"></div>
+            </div>
+            
+            <div class="tab-content" id="skillsTab" style="display: none;">
+                <h2>Employee Skills Matrix</h2>
+                <input type="text" id="employeeSearch" placeholder="Search employees..." class="search-input">
+                <div id="skillsMatrix" class="skills-matrix"></div>
+            </div>
+        </div>
+        
+        <div id="projectModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Add/Edit Project</h2>
+                <form id="projectForm">
+                    <input type="text" id="projectName" placeholder="Project Name" required>
+                    <input type="date" id="projectStart" required>
+                    <input type="date" id="projectEnd" required>
+                    <select id="projectEmployee">
+                        <option value="">Select Employee</option>
+                    </select>
+                    <input type="number" id="projectHours" placeholder="Hours per week" min="1" max="40">
+                    <button type="submit">Save Project</button>
+                </form>
+            </div>
+        </div>
+        
+        <div id="optimizeModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeOptimizeModal">&times;</span>
+                <h2>Optimize Schedule</h2>
+                <div class="optimize-options">
+                    <div class="algorithm-selection">
+                        <h3>Select Algorithm</h3>
+                        <label>
+                            <input type="radio" name="algorithm" value="genetic" checked>
+                            <span>Genetic Algorithm</span>
+                            <small>Best for complex multi-objective optimization</small>
+                        </label>
+                        <label>
+                            <input type="radio" name="algorithm" value="annealing">
+                            <span>Simulated Annealing</span>
+                            <small>Good for local optimization</small>
+                        </label>
+                        <label>
+                            <input type="radio" name="algorithm" value="constraint">
+                            <span>Constraint Satisfaction</span>
+                            <small>Fast, rule-based assignment</small>
+                        </label>
+                    </div>
+                    
+                    <div class="optimize-parameters">
+                        <h3>Parameters</h3>
+                        <div id="geneticParams" class="param-group">
+                            <label>Generations: <input type="number" id="generations" value="100" min="10" max="500"></label>
+                            <label>Population Size: <input type="number" id="populationSize" value="50" min="10" max="200"></label>
+                            <label>Mutation Rate: <input type="number" id="mutationRate" value="0.1" min="0" max="1" step="0.05"></label>
+                        </div>
+                        <div id="annealingParams" class="param-group" style="display:none;">
+                            <label>Initial Temperature: <input type="number" id="initialTemp" value="1000" min="100" max="10000"></label>
+                            <label>Cooling Rate: <input type="number" id="coolingRate" value="0.95" min="0.8" max="0.99" step="0.01"></label>
+                            <label>Max Iterations: <input type="number" id="maxIterations" value="1000" min="100" max="5000"></label>
+                        </div>
+                        <div id="constraintParams" class="param-group" style="display:none;">
+                            <label>Max Iterations: <input type="number" id="constraintIterations" value="100" min="10" max="1000"></label>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-primary" id="runOptimizationBtn">Run Optimization</button>
+                    <button class="btn-secondary" id="cancelOptimizationBtn">Cancel</button>
+                </div>
+                
+                <div id="optimizationProgress" style="display:none;">
+                    <h3>Optimizing...</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div id="optimizationStatus"></div>
+                </div>
+                
+                <div id="optimizationResults" style="display:none;">
+                    <h3>Optimization Results</h3>
+                    <div id="resultsSummary"></div>
+                    <button class="btn-primary" id="applyOptimizationBtn">Apply Solution</button>
+                    <button class="btn-secondary" id="discardOptimizationBtn">Discard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Only load XLSX lib and landing script initially -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="js/landing.js"></script>
+</body>
+</html>
