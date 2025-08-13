@@ -4,20 +4,20 @@
     function generateSampleExcel() {
         // Sample employees
         const employees = [
-            { ID: 'E001', Name: 'Alice Johnson', Email: 'alice@company.com', 'Max Hours': 40, 'Project Management': 'Expert', 'Data Analysis': 'Advanced', 'Communication': 'Expert' },
-            { ID: 'E002', Name: 'Bob Smith', Email: 'bob@company.com', 'Max Hours': 40, 'Financial Auditing': 'Expert', 'Risk Assessment': 'Advanced', 'Excel': 'Expert' },
-            { ID: 'E003', Name: 'Carol Williams', Email: 'carol@company.com', 'Max Hours': 35, 'Cybersecurity': 'Advanced', 'Network Admin': 'Intermediate', 'Python': 'Expert' },
-            { ID: 'E004', Name: 'David Brown', Email: 'david@company.com', 'Max Hours': 40, 'Software Development': 'Expert', 'JavaScript': 'Expert', 'React': 'Advanced' },
-            { ID: 'E005', Name: 'Emma Davis', Email: 'emma@company.com', 'Max Hours': 40, 'UI/UX Design': 'Expert', 'Figma': 'Expert', 'CSS': 'Advanced' }
+            { ID: 'E001', Name: 'Alice Johnson', Email: 'alice@company.com', 'Max Hours': 40, Team: 'Management', 'Project Management': 'Expert', 'Data Analysis': 'Advanced', 'Communication': 'Expert' },
+            { ID: 'E002', Name: 'Bob Smith', Email: 'bob@company.com', 'Max Hours': 40, Team: 'Finance', 'Financial Auditing': 'Expert', 'Risk Assessment': 'Advanced', 'Excel': 'Expert' },
+            { ID: 'E003', Name: 'Carol Williams', Email: 'carol@company.com', 'Max Hours': 35, Team: 'IT Security', 'Cybersecurity': 'Advanced', 'Network Admin': 'Intermediate', 'Python': 'Expert' },
+            { ID: 'E004', Name: 'David Brown', Email: 'david@company.com', 'Max Hours': 40, Team: 'Product', 'Software Development': 'Expert', 'JavaScript': 'Expert', 'React': 'Advanced' },
+            { ID: 'E005', Name: 'Emma Davis', Email: 'emma@company.com', 'Max Hours': 40, Team: 'Product', 'UI/UX Design': 'Expert', 'Figma': 'Expert', 'CSS': 'Advanced' }
         ];
         
         // Sample projects
         const projects = [
-            { ID: 'P001', Name: 'Q1 Financial Audit', 'Start Date': '2024-01-15', 'End Date': '2024-03-15', Portfolio: 'Finance', 'Required Skills': 'Financial Auditing, Excel' },
-            { ID: 'P002', Name: 'Security Assessment', 'Start Date': '2024-02-01', 'End Date': '2024-04-30', Portfolio: 'IT Security', 'Required Skills': 'Cybersecurity, Risk Assessment' },
-            { ID: 'P003', Name: 'Customer Portal Redesign', 'Start Date': '2024-01-01', 'End Date': '2024-05-31', Portfolio: 'Product', 'Required Skills': 'UI/UX Design, JavaScript, React' },
-            { ID: 'P004', Name: 'Data Migration Project', 'Start Date': '2024-03-01', 'End Date': '2024-06-30', Portfolio: 'IT Infrastructure', 'Required Skills': 'Data Analysis, Python' },
-            { ID: 'P005', Name: 'Annual Planning', 'Start Date': '2024-01-01', 'End Date': '2024-02-28', Portfolio: 'Management', 'Required Skills': 'Project Management, Communication' }
+            { ID: 'P001', Name: 'Q1 Financial Audit', 'Start Date': '2024-01-15', 'End Date': '2024-03-15', 'Required Skills': 'Financial Auditing, Excel' },
+            { ID: 'P002', Name: 'Security Assessment', 'Start Date': '2024-02-01', 'End Date': '2024-04-30', 'Required Skills': 'Cybersecurity, Risk Assessment' },
+            { ID: 'P003', Name: 'Customer Portal Redesign', 'Start Date': '2024-01-01', 'End Date': '2024-05-31', 'Required Skills': 'UI/UX Design, JavaScript, React' },
+            { ID: 'P004', Name: 'Data Migration Project', 'Start Date': '2024-03-01', 'End Date': '2024-06-30', 'Required Skills': 'Data Analysis, Python' },
+            { ID: 'P005', Name: 'Annual Planning', 'Start Date': '2024-01-01', 'End Date': '2024-02-28', 'Required Skills': 'Project Management, Communication' }
         ];
         
         // Sample assignments
@@ -88,10 +88,22 @@
         document.getElementById('landing').style.display = 'none';
         document.getElementById('app').style.display = 'block';
         
+        // Check if app.js is already loaded
+        if (window.appLoaded) {
+            return;
+        }
+        
         // Dynamically load the main app module
         const script = document.createElement('script');
         script.type = 'module';
         script.src = 'js/app.js';
+        script.onload = () => {
+            window.appLoaded = true;
+        };
+        script.onerror = (e) => {
+            console.error('Failed to load app script:', e);
+            alert('Failed to load application. Please refresh the page.');
+        };
         document.body.appendChild(script);
     }
     

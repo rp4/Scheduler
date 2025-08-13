@@ -13,6 +13,12 @@ let ScheduleOptimizer = null;
 
 // Initialize the application
 function init() {
+    // Wait for XLSX to be available
+    if (typeof XLSX === 'undefined') {
+        setTimeout(init, 100);
+        return;
+    }
+    
     setupEventListeners();
     
     // Check if we have pre-loaded data from landing page
@@ -48,16 +54,29 @@ function loadStoredFile(dataUrl) {
             const data = new Uint8Array(buffer);
             const workbook = XLSX.read(data, { type: 'array' });
             
-            // Import using existing excel module
-            const excelModule = import('./modules/excel.js');
-            excelModule.then(module => {
+            // Parse the Excel data
+            import('./modules/excel.js').then(module => {
                 module.parseExcelData(workbook);
+                updateTeamDropdown();
                 updateUI();
             });
+        })
+        .catch(err => {
+            console.error('Error loading file:', err);
+            alert('Failed to load Excel file. Please try again.');
         });
 }
 
 function setupEventListeners() {
+    // Upload button
+    const uploadBtn = document.getElementById('uploadBtn');
+    const fileUpload = document.getElementById('fileUpload');
+    
+    if (uploadBtn && fileUpload) {
+        uploadBtn.addEventListener('click', () => fileUpload.click());
+        fileUpload.addEventListener('change', handleFileUpload);
+    }
+    
     // Download button
     document.getElementById('downloadBtn').addEventListener('click', exportToExcel);
     
@@ -71,9 +90,9 @@ function setupEventListeners() {
         btn.addEventListener('click', () => switchHoursView(btn.dataset.view));
     });
     
-    // Portfolio selector
-    document.getElementById('portfolio').addEventListener('change', (e) => {
-        state.setSelectedPortfolio(e.target.value);
+    // Team selector
+    document.getElementById('team').addEventListener('change', (e) => {
+        state.setSelectedTeam(e.target.value);
         updateUI();
     });
     
@@ -109,12 +128,12 @@ function setupEventListeners() {
     
     // Listen for data updates
     eventBus.on('dataUpdated', () => {
-        updatePortfolioDropdown();
+        updateTeamDropdown();
         updateUI();
     });
     
     eventBus.on('dataLoaded', () => {
-        updatePortfolioDropdown();
+        updateTeamDropdown();
         updateUI();
     });
 }
@@ -156,14 +175,24 @@ function switchHoursView(view) {
     renderHoursView();
 }
 
-function updatePortfolioDropdown() {
-    const dropdown = document.getElementById('portfolio');
+function updateTeamDropdown() {
+    const dropdown = document.getElementById('team');
+    if (!dropdown) {
+        console.warn('Team dropdown not found');
+        return;
+    }
+    
     dropdown.innerHTML = '';
     
-    state.scheduleData.portfolios.forEach(portfolio => {
+    if (!state.scheduleData.teams || state.scheduleData.teams.length === 0) {
+        console.warn('No teams found in data');
+        state.scheduleData.teams = ['All Teams'];
+    }
+    
+    state.scheduleData.teams.forEach(team => {
         const option = document.createElement('option');
-        option.value = portfolio === 'All Portfolios' ? 'all' : portfolio;
-        option.textContent = portfolio;
+        option.value = team === 'All Teams' ? 'all' : team;
+        option.textContent = team;
         dropdown.appendChild(option);
     });
 }
@@ -203,7 +232,7 @@ function saveProject(event) {
         name: document.getElementById('projectName').value,
         startDate: new Date(document.getElementById('projectStart').value),
         endDate: new Date(document.getElementById('projectEnd').value),
-        portfolio: 'Default',
+        team: 'Default',
         requiredSkills: []
     };
     
@@ -358,4 +387,9 @@ document.addEventListener('click', () => {
 
 // Initialize the application when this script is loaded
 // (which only happens when landing.js loads it after file upload)
-init();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    // DOM is already loaded
+    init();
+}

@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resource Scheduling Tool</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -69,6 +72,8 @@
             <header>
                 <h1>Resource Scheduling</h1>
                 <div class="header-actions">
+                    <input type="file" id="fileUpload" accept=".xlsx,.xls" style="display: none;">
+                    <button class="btn-upload" id="uploadBtn">📁 Upload</button>
                     <button class="btn-download" id="downloadBtn">📥 Download Excel</button>
                     <button class="btn-optimize" id="optimizeBtn">🤖 Optimize Schedule</button>
                 </div>
@@ -93,10 +98,10 @@
             </div>
             
             <div class="controls">
-                <div class="portfolio-selector">
-                    <label for="portfolio">Portfolio:</label>
-                    <select id="portfolio">
-                        <option value="all">All Portfolios</option>
+                <div class="team-selector">
+                    <label for="team">Team:</label>
+                    <select id="team">
+                        <option value="all">All Teams</option>
                     </select>
                 </div>
             </div>
