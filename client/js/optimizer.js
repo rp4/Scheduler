@@ -1,4 +1,4 @@
-class ScheduleOptimizer {
+export class ScheduleOptimizer {
     constructor(employees, projects, assignments) {
         this.employees = employees;
         this.projects = projects;

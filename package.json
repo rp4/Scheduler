@@ -4,9 +4,9 @@
   "description": "Resource scheduling tool with MCP server for AI agent integration",
   "main": "mcp-server.js",
   "scripts": {
-    "dev": "npx http-server -p 8000 -o",
+    "dev": "npx http-server . -p 8000 -o /index.html",
     "start": "node mcp-server.js",
-    "serve": "npx http-server -p 8000",
+    "serve": "npx http-server . -p 8000",
     "mcp": "node mcp-server.js",
     "deploy": "vercel"
   },
