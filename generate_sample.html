@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generate Sample Schedule Data</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Generate Sample Schedule Data</h1>
+    <button onclick="generateSampleData()">Generate Sample Excel File</button>
+    
+    <script>
+    function generateSampleData() {
+        const wb = XLSX.utils.book_new();
+        
+        // Employees sheet
+        const employees = [
+            { ID: 'emp1', Name: 'Rich Penfil', Email: 'rilu979@gmail.com', 'Max Hours': 40, 
+              'Communication': 'Advanced', 'Cybersecurity': 'None', 'Data Analysis': 'Intermediate', 'Financial Auditing': 'None' },
+            { ID: 'emp2', Name: 'System User', Email: 'system@auditswarms.com', 'Max Hours': 40,
+              'Communication': 'Expert', 'Cybersecurity': 'Intermediate', 'Data Analysis': 'Advanced', 'Financial Auditing': 'Beginner' },
+            { ID: 'emp3', Name: 'Alice Johnson', Email: 'alice@company.com', 'Max Hours': 40,
+              'Communication': 'Intermediate', 'Cybersecurity': 'Expert', 'Data Analysis': 'Advanced', 'Financial Auditing': 'Intermediate' },
+            { ID: 'emp4', Name: 'Bob Smith', Email: 'bob@company.com', 'Max Hours': 40,
+              'Communication': 'Beginner', 'Cybersecurity': 'Advanced', 'Data Analysis': 'Expert', 'Financial Auditing': 'None' },
+            { ID: 'emp5', Name: 'Carol Davis', Email: 'carol@company.com', 'Max Hours': 35,
+              'Communication': 'Expert', 'Cybersecurity': 'Intermediate', 'Data Analysis': 'Intermediate', 'Financial Auditing': 'Advanced' }
+        ];
+        const wsEmployees = XLSX.utils.json_to_sheet(employees);
+        XLSX.utils.book_append_sheet(wb, wsEmployees, 'Employees');
+        
+        // Projects sheet
+        const projects = [
+            { ID: 'proj1', Name: 'P2P', 'Start Date': '2025-07-01', 'End Date': '2025-09-30', 
+              Portfolio: 'Finance', 'Required Skills': 'Financial Auditing, Data Analysis' },
+            { ID: 'proj2', Name: 'Security Audit', 'Start Date': '2025-08-01', 'End Date': '2025-10-15', 
+              Portfolio: 'IT Security', 'Required Skills': 'Cybersecurity, Data Analysis' },
+            { ID: 'proj3', Name: 'Data Migration', 'Start Date': '2025-08-15', 'End Date': '2025-11-30', 
+              Portfolio: 'IT Infrastructure', 'Required Skills': 'Data Analysis, Communication' },
+            { ID: 'proj4', Name: 'Compliance Review', 'Start Date': '2025-09-01', 'End Date': '2025-12-31', 
+              Portfolio: 'Finance', 'Required Skills': 'Financial Auditing, Communication' }
+        ];
+        const wsProjects = XLSX.utils.json_to_sheet(projects);
+        XLSX.utils.book_append_sheet(wb, wsProjects, 'Projects');
+        
+        // Assignments sheet
+        const assignments = [
+            { 'Employee ID': 'emp1', 'Project ID': 'proj1', Hours: 20, Week: 28 },
+            { 'Employee ID': 'emp2', 'Project ID': 'proj1', Hours: 15, Week: 28 },
+            { 'Employee ID': 'emp3', 'Project ID': 'proj2', Hours: 30, Week: 28 },
+            { 'Employee ID': 'emp4', 'Project ID': 'proj3', Hours: 25, Week: 28 },
+            { 'Employee ID': 'emp5', 'Project ID': 'proj4', Hours: 20, Week: 28 },
+            { 'Employee ID': 'emp1', 'Project ID': 'proj3', Hours: 10, Week: 28 }
+        ];
+        const wsAssignments = XLSX.utils.json_to_sheet(assignments);
+        XLSX.utils.book_append_sheet(wb, wsAssignments, 'Assignments');
+        
+        // Skills sheet (alternative format)
+        const skills = [
+            { Employee: 'Rich Penfil', Communication: 'Advanced', Cybersecurity: 'None', 'Data Analysis': 'Intermediate', 'Financial Auditing': 'None' },
+            { Employee: 'System User', Communication: 'Expert', Cybersecurity: 'Intermediate', 'Data Analysis': 'Advanced', 'Financial Auditing': 'Beginner' },
+            { Employee: 'Alice Johnson', Communication: 'Intermediate', Cybersecurity: 'Expert', 'Data Analysis': 'Advanced', 'Financial Auditing': 'Intermediate' },
+            { Employee: 'Bob Smith', Communication: 'Beginner', Cybersecurity: 'Advanced', 'Data Analysis': 'Expert', 'Financial Auditing': 'None' },
+            { Employee: 'Carol Davis', Communication: 'Expert', Cybersecurity: 'Intermediate', 'Data Analysis': 'Intermediate', 'Financial Auditing': 'Advanced' }
+        ];
+        const wsSkills = XLSX.utils.json_to_sheet(skills);
+        XLSX.utils.book_append_sheet(wb, wsSkills, 'Skills');
+        
+        // Download the file
+        XLSX.writeFile(wb, 'SchedulerInput.xlsx');
+        alert('Sample Excel file generated! Please upload it in the main scheduler application.');
+    }
+    </script>
+</body>
+</html>
