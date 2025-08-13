@@ -1,0 +1,13 @@
+ID,Name,Email,Max Hours,Communication,Cybersecurity,Data Analysis,Financial Auditing,Project Management,Risk Assessment
+EMP001,Sarah Johnson,sarah.johnson@company.com,40,Advanced,Intermediate,Expert,Beginner,Advanced,Intermediate
+EMP002,Michael Chen,michael.chen@company.com,40,Expert,Advanced,Intermediate,None,Expert,Advanced
+EMP003,Emily Davis,emily.davis@company.com,35,Intermediate,Beginner,Advanced,Expert,Intermediate,Expert
+EMP004,James Wilson,james.wilson@company.com,40,Beginner,Expert,Advanced,Intermediate,Advanced,Intermediate
+EMP005,Maria Garcia,maria.garcia@company.com,40,Advanced,Intermediate,Expert,Advanced,Beginner,Advanced
+EMP006,Robert Smith,robert.smith@company.com,40,Expert,None,Intermediate,Expert,Advanced,Expert
+EMP007,Lisa Anderson,lisa.anderson@company.com,35,Intermediate,Advanced,Beginner,Intermediate,Expert,Intermediate
+EMP008,David Brown,david.brown@company.com,40,Advanced,Expert,Advanced,None,Intermediate,Beginner
+EMP009,Jennifer Taylor,jennifer.taylor@company.com,40,Expert,Intermediate,Expert,Advanced,Advanced,Advanced
+EMP010,Thomas Martinez,thomas.martinez@company.com,40,Intermediate,Advanced,Intermediate,Expert,Beginner,Expert
+EMP011,Amanda White,amanda.white@company.com,35,Advanced,Beginner,Advanced,Intermediate,Expert,Intermediate
+EMP012,Christopher Lee,christopher.lee@company.com,40,Beginner,Expert,Expert,Beginner,Intermediate,Advanced
