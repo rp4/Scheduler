@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test File Upload</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Test File Upload</h1>
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+    <pre id="output"></pre>
+    
+    <script type="module">
+        import { parseExcelData } from './js/modules/excel.js';
+        import { scheduleData } from './js/core/state.js';
+        
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                console.log('Workbook sheets:', workbook.SheetNames);
+                
+                // Parse the data
+                parseExcelData(workbook);
+                
+                // Display the result
+                document.getElementById('output').textContent = JSON.stringify(scheduleData, null, 2);
+                
+                console.log('Schedule data after parsing:', scheduleData);
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>
