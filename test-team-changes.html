@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Team Changes</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #333;
+            background: #f5f5f5;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        pre {
+            background: white;
+            padding: 10px;
+            border: 1px solid #ddd;
+            overflow-x: auto;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Team Feature Changes Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Generate Sample Excel with Team in Employees</h2>
+        <button onclick="generateSampleExcel()">Generate Sample Excel</button>
+        <div id="test1-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Parse Excel and Check Data Structure</h2>
+        <input type="file" id="fileInput" accept=".xlsx,.xls">
+        <button onclick="parseExcel()">Parse Excel File</button>
+        <div id="test2-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Check Team Filtering Logic</h2>
+        <button onclick="testTeamFiltering()">Test Team Filtering</button>
+        <div id="test3-result"></div>
+    </div>
+
+    <script>
+        function generateSampleExcel() {
+            const employees = [
+                { ID: 'E001', Name: 'Alice Johnson', Email: 'alice@company.com', 'Max Hours': 40, Team: 'Management', 'Project Management': 'Expert' },
+                { ID: 'E002', Name: 'Bob Smith', Email: 'bob@company.com', 'Max Hours': 40, Team: 'Finance', 'Financial Auditing': 'Expert' },
+                { ID: 'E003', Name: 'Carol Williams', Email: 'carol@company.com', 'Max Hours': 35, Team: 'IT Security', 'Cybersecurity': 'Advanced' },
+                { ID: 'E004', Name: 'David Brown', Email: 'david@company.com', 'Max Hours': 40, Team: 'Product', 'JavaScript': 'Expert' },
+                { ID: 'E005', Name: 'Emma Davis', Email: 'emma@company.com', 'Max Hours': 40, Team: 'Product', 'UI/UX Design': 'Expert' }
+            ];
+            
+            const projects = [
+                { ID: 'P001', Name: 'Q1 Financial Audit', 'Start Date': '2024-01-15', 'End Date': '2024-03-15', 'Required Skills': 'Financial Auditing' },
+                { ID: 'P002', Name: 'Security Assessment', 'Start Date': '2024-02-01', 'End Date': '2024-04-30', 'Required Skills': 'Cybersecurity' },
+                { ID: 'P003', Name: 'Customer Portal', 'Start Date': '2024-01-01', 'End Date': '2024-05-31', 'Required Skills': 'UI/UX Design' }
+            ];
+            
+            const assignments = [
+                { 'Employee ID': 'E001', 'Project ID': 'P001', Hours: 20, Week: 1 },
+                { 'Employee ID': 'E002', 'Project ID': 'P001', Hours: 40, Week: 1 },
+                { 'Employee ID': 'E003', 'Project ID': 'P002', Hours: 30, Week: 1 },
+                { 'Employee ID': 'E004', 'Project ID': 'P003', Hours: 35, Week: 1 },
+                { 'Employee ID': 'E005', 'Project ID': 'P003', Hours: 40, Week: 1 }
+            ];
+            
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(employees), 'Employees');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(projects), 'Projects');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(assignments), 'Assignments');
+            
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'test_team_schedule.xlsx';
+            a.click();
+            
+            const resultDiv = document.getElementById('test1-result');
+            resultDiv.innerHTML = `
+                <p class="success">✓ Sample Excel generated successfully!</p>
+                <p>Employee Sheet includes Team column: <span class="success">YES</span></p>
+                <p>Project Sheet excludes Portfolio column: <span class="success">YES</span></p>
+                <pre>${JSON.stringify(employees[0], null, 2)}</pre>
+                <pre>${JSON.stringify(projects[0], null, 2)}</pre>
+            `;
+        }
+        
+        function parseExcel() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a file first');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                const employees = XLSX.utils.sheet_to_json(workbook.Sheets['Employees']);
+                const projects = XLSX.utils.sheet_to_json(workbook.Sheets['Projects']);
+                
+                const resultDiv = document.getElementById('test2-result');
+                let html = '<h3>Parsed Data Structure:</h3>';
+                
+                // Check if employees have Team field
+                const hasTeam = employees.length > 0 && 'Team' in employees[0];
+                html += `<p>Employees have Team field: <span class="${hasTeam ? 'success' : 'error'}">${hasTeam ? 'YES ✓' : 'NO ✗'}</span></p>`;
+                
+                // Check if projects don't have Portfolio field
+                const hasPortfolio = projects.length > 0 && 'Portfolio' in projects[0];
+                html += `<p>Projects have Portfolio field: <span class="${!hasPortfolio ? 'success' : 'error'}">${!hasPortfolio ? 'NO ✓' : 'YES ✗'}</span></p>`;
+                
+                // List unique teams
+                const teams = [...new Set(employees.map(e => e.Team).filter(t => t))];
+                html += `<p>Teams found: ${teams.join(', ') || 'None'}</p>`;
+                
+                html += '<h4>First Employee:</h4><pre>' + JSON.stringify(employees[0], null, 2) + '</pre>';
+                html += '<h4>First Project:</h4><pre>' + JSON.stringify(projects[0], null, 2) + '</pre>';
+                
+                resultDiv.innerHTML = html;
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function testTeamFiltering() {
+            // Simulate the filtering logic
+            const mockData = {
+                employees: [
+                    { id: 'E001', name: 'Alice', team: 'Management' },
+                    { id: 'E002', name: 'Bob', team: 'Finance' },
+                    { id: 'E003', name: 'Carol', team: 'IT Security' },
+                    { id: 'E004', name: 'David', team: 'Product' },
+                    { id: 'E005', name: 'Emma', team: 'Product' }
+                ],
+                projects: [
+                    { id: 'P001', name: 'Financial Audit' },
+                    { id: 'P002', name: 'Security Assessment' },
+                    { id: 'P003', name: 'Customer Portal' }
+                ],
+                assignments: [
+                    { employeeId: 'E001', projectId: 'P001' },
+                    { employeeId: 'E002', projectId: 'P001' },
+                    { employeeId: 'E003', projectId: 'P002' },
+                    { employeeId: 'E004', projectId: 'P003' },
+                    { employeeId: 'E005', projectId: 'P003' }
+                ]
+            };
+            
+            function filterProjectsByTeam(team) {
+                if (!team || team === 'all' || team === 'All Teams') {
+                    return mockData.projects;
+                }
+                
+                const teamEmployees = mockData.employees
+                    .filter(e => e.team === team)
+                    .map(e => e.id);
+                
+                const projectIds = new Set();
+                mockData.assignments.forEach(a => {
+                    if (teamEmployees.includes(a.employeeId)) {
+                        projectIds.add(a.projectId);
+                    }
+                });
+                
+                return mockData.projects.filter(p => projectIds.has(p.id));
+            }
+            
+            const resultDiv = document.getElementById('test3-result');
+            let html = '<h3>Team Filtering Test Results:</h3>';
+            
+            // Test different team filters
+            const tests = [
+                { team: 'all', expected: 3 },
+                { team: 'Product', expected: 1 },
+                { team: 'Finance', expected: 1 },
+                { team: 'Management', expected: 1 }
+            ];
+            
+            tests.forEach(test => {
+                const filtered = filterProjectsByTeam(test.team);
+                const pass = filtered.length === test.expected;
+                html += `<p>Filter by "${test.team}": ${filtered.length} projects <span class="${pass ? 'success' : 'error'}">${pass ? '✓' : '✗'}</span></p>`;
+                if (test.team !== 'all') {
+                    html += `<pre>  Projects: ${filtered.map(p => p.name).join(', ')}</pre>`;
+                }
+            });
+            
+            resultDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

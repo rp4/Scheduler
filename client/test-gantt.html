@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Gantt Chart</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body { padding: 20px; }
+        #testGantt { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>Gantt Chart Test</h1>
+    <div id="testGantt" class="gantt-container">
+        <div class="gantt-chart">
+            <div class="gantt-header">
+                <div style="width: 150px;"></div>
+                <div class="gantt-dates">
+                    <div class="gantt-date">Jan 1</div>
+                    <div class="gantt-date">Jan 8</div>
+                    <div class="gantt-date">Jan 15</div>
+                    <div class="gantt-date">Jan 22</div>
+                    <div class="gantt-date">Jan 29</div>
+                </div>
+            </div>
+            
+            <div class="today-marker" style="left: calc(150px + 30%);"></div>
+            
+            <div class="gantt-row">
+                <div class="gantt-project-name">Project Alpha</div>
+                <div class="gantt-timeline">
+                    <div class="gantt-bar" style="left: 10%; width: 30%;">Project Alpha</div>
+                </div>
+            </div>
+            
+            <div class="gantt-row">
+                <div class="gantt-project-name">Project Beta</div>
+                <div class="gantt-timeline">
+                    <div class="gantt-bar" style="left: 25%; width: 40%;">Project Beta</div>
+                </div>
+            </div>
+            
+            <div class="gantt-row">
+                <div class="gantt-project-name">Project Gamma</div>
+                <div class="gantt-timeline">
+                    <div class="gantt-bar" style="left: 50%; width: 35%;">Project Gamma</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <h2>Dynamic Test</h2>
+    <button onclick="testDynamic()">Load Dynamic Gantt</button>
+    <div id="dynamicGantt" class="gantt-container"></div>
+    
+    <script type="module">
+        import { renderGanttChart } from './js/modules/gantt.js';
+        import { updateScheduleData } from './js/core/state.js';
+        
+        window.testDynamic = function() {
+            // Create test data
+            const testData = {
+                employees: [
+                    { id: 'E001', name: 'John Doe', team: 'Engineering' },
+                    { id: 'E002', name: 'Jane Smith', team: 'Design' }
+                ],
+                projects: [
+                    { 
+                        id: 'P001', 
+                        name: 'Website Redesign',
+                        startDate: new Date('2025-08-01'),
+                        endDate: new Date('2025-09-15')
+                    },
+                    { 
+                        id: 'P002', 
+                        name: 'Mobile App',
+                        startDate: new Date('2025-08-15'),
+                        endDate: new Date('2025-10-01')
+                    },
+                    { 
+                        id: 'P003', 
+                        name: 'API Development',
+                        startDate: new Date('2025-09-01'),
+                        endDate: new Date('2025-10-15')
+                    }
+                ],
+                assignments: [
+                    { employeeId: 'E001', projectId: 'P001', hours: 20 },
+                    { employeeId: 'E001', projectId: 'P002', hours: 20 },
+                    { employeeId: 'E002', projectId: 'P001', hours: 40 },
+                    { employeeId: 'E002', projectId: 'P003', hours: 30 }
+                ],
+                teams: ['All Teams', 'Engineering', 'Design']
+            };
+            
+            updateScheduleData(testData);
+            
+            // Set the container for gantt chart
+            document.getElementById('dynamicGantt').innerHTML = '<div id="ganttChart"></div>';
+            
+            // Render the chart
+            renderGanttChart();
+            
+            console.log('Gantt chart rendered with test data');
+        };
+    </script>
+</body>
+</html>

@@ -20,8 +20,17 @@
             
             <div class="landing-actions">
                 <div class="action-card">
-                    <h2>Get Started</h2>
-                    <p>Upload your Excel schedule to begin</p>
+                    <h2>📥 Download Sample</h2>
+                    <p>Get a sample Excel file to see the required format and explore features</p>
+                    <button class="btn-secondary landing-btn" id="downloadSampleBtn">
+                        <span class="btn-icon">📥</span>
+                        Download Sample Excel
+                    </button>
+                </div>
+                
+                <div class="action-card">
+                    <h2>📁 Upload Excel</h2>
+                    <p>Upload your own Excel schedule file to begin optimizing</p>
                     <input type="file" id="landingFileInput" accept=".xlsx,.xls" style="display: none;">
                     <button class="btn-primary landing-btn" id="landingUploadBtn">
                         <span class="btn-icon">📁</span>
@@ -29,38 +38,13 @@
                     </button>
                 </div>
                 
-                <div class="divider">OR</div>
-                
                 <div class="action-card">
-                    <h2>Try It Out</h2>
-                    <p>Download a sample file to explore features</p>
-                    <button class="btn-secondary landing-btn" id="downloadSampleBtn">
-                        <span class="btn-icon">📥</span>
-                        Download Sample Excel
+                    <h2>🚀 Try Now</h2>
+                    <p>Instantly load sample data to explore all features without uploading</p>
+                    <button class="btn-primary landing-btn" id="tryNowBtn" style="background: linear-gradient(135deg, #8B5CF6, #6366F1);">
+                        <span class="btn-icon">🚀</span>
+                        Try with Sample Data
                     </button>
-                </div>
-            </div>
-            
-            <div class="landing-features">
-                <div class="feature">
-                    <span class="feature-icon">📈</span>
-                    <h3>Gantt Charts</h3>
-                    <p>Visualize project timelines</p>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">⏰</span>
-                    <h3>Hours Tracking</h3>
-                    <p>Monitor resource allocation</p>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">🎯</span>
-                    <h3>Skills Matrix</h3>
-                    <p>Match skills to projects</p>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">🤖</span>
-                    <h3>AI Optimization</h3>
-                    <p>Smart schedule optimization</p>
                 </div>
             </div>
         </div>
@@ -72,8 +56,12 @@
             <header>
                 <h1>Resource Scheduling</h1>
                 <div class="header-actions">
-                    <input type="file" id="fileUpload" accept=".xlsx,.xls" style="display: none;">
-                    <button class="btn-upload" id="uploadBtn">📁 Upload</button>
+                    <div class="team-selector-header">
+                        <label for="team">Team:</label>
+                        <select id="team">
+                            <option value="all">All Teams</option>
+                        </select>
+                    </div>
                     <button class="btn-download" id="downloadBtn">📥 Download Excel</button>
                     <button class="btn-optimize" id="optimizeBtn">🤖 Optimize Schedule</button>
                 </div>
@@ -94,15 +82,6 @@
                     <h3>Skills Matching</h3>
                     <div class="metric-value green" id="skillsMatching">0</div>
                     <div class="metric-description">Total proficiency points</div>
-                </div>
-            </div>
-            
-            <div class="controls">
-                <div class="team-selector">
-                    <label for="team">Team:</label>
-                    <select id="team">
-                        <option value="all">All Teams</option>
-                    </select>
                 </div>
             </div>
             

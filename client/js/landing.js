@@ -1,56 +1,56 @@
 // Ultra-lightweight landing page handler
 (function() {
-    // Generate sample Excel data
-    function generateSampleExcel() {
-        // Sample employees
-        const employees = [
-            { ID: 'E001', Name: 'Alice Johnson', Email: 'alice@company.com', 'Max Hours': 40, Team: 'Management', 'Project Management': 'Expert', 'Data Analysis': 'Advanced', 'Communication': 'Expert' },
-            { ID: 'E002', Name: 'Bob Smith', Email: 'bob@company.com', 'Max Hours': 40, Team: 'Finance', 'Financial Auditing': 'Expert', 'Risk Assessment': 'Advanced', 'Excel': 'Expert' },
-            { ID: 'E003', Name: 'Carol Williams', Email: 'carol@company.com', 'Max Hours': 35, Team: 'IT Security', 'Cybersecurity': 'Advanced', 'Network Admin': 'Intermediate', 'Python': 'Expert' },
-            { ID: 'E004', Name: 'David Brown', Email: 'david@company.com', 'Max Hours': 40, Team: 'Product', 'Software Development': 'Expert', 'JavaScript': 'Expert', 'React': 'Advanced' },
-            { ID: 'E005', Name: 'Emma Davis', Email: 'emma@company.com', 'Max Hours': 40, Team: 'Product', 'UI/UX Design': 'Expert', 'Figma': 'Expert', 'CSS': 'Advanced' }
-        ];
-        
-        // Sample projects
-        const projects = [
-            { ID: 'P001', Name: 'Q1 Financial Audit', 'Start Date': '2024-01-15', 'End Date': '2024-03-15', 'Required Skills': 'Financial Auditing, Excel' },
-            { ID: 'P002', Name: 'Security Assessment', 'Start Date': '2024-02-01', 'End Date': '2024-04-30', 'Required Skills': 'Cybersecurity, Risk Assessment' },
-            { ID: 'P003', Name: 'Customer Portal Redesign', 'Start Date': '2024-01-01', 'End Date': '2024-05-31', 'Required Skills': 'UI/UX Design, JavaScript, React' },
-            { ID: 'P004', Name: 'Data Migration Project', 'Start Date': '2024-03-01', 'End Date': '2024-06-30', 'Required Skills': 'Data Analysis, Python' },
-            { ID: 'P005', Name: 'Annual Planning', 'Start Date': '2024-01-01', 'End Date': '2024-02-28', 'Required Skills': 'Project Management, Communication' }
-        ];
-        
-        // Sample assignments
-        const assignments = [
-            { 'Employee ID': 'E001', 'Project ID': 'P005', Hours: 20, Week: 1 },
-            { 'Employee ID': 'E002', 'Project ID': 'P001', Hours: 40, Week: 3 },
-            { 'Employee ID': 'E003', 'Project ID': 'P002', Hours: 30, Week: 5 },
-            { 'Employee ID': 'E004', 'Project ID': 'P003', Hours: 35, Week: 1 },
-            { 'Employee ID': 'E005', 'Project ID': 'P003', Hours: 40, Week: 1 }
-        ];
-        
-        // Create workbook
-        const wb = XLSX.utils.book_new();
-        
-        // Add sheets
-        const ws1 = XLSX.utils.json_to_sheet(employees);
-        XLSX.utils.book_append_sheet(wb, ws1, 'Employees');
-        
-        const ws2 = XLSX.utils.json_to_sheet(projects);
-        XLSX.utils.book_append_sheet(wb, ws2, 'Projects');
-        
-        const ws3 = XLSX.utils.json_to_sheet(assignments);
-        XLSX.utils.book_append_sheet(wb, ws3, 'Assignments');
-        
-        // Generate and download file
-        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([wbout], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'ScheduleSample.xlsx';
-        a.click();
-        URL.revokeObjectURL(url);
+    // Download the actual sample Excel file from public folder
+    function downloadSampleExcel() {
+        const link = document.createElement('a');
+        link.href = '/public/ScheduleSample.xlsx';
+        link.download = 'ScheduleSample.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    // Load sample data automatically for "Try Now" functionality
+    async function loadSampleData() {
+        try {
+            // Show loading state
+            document.getElementById('landingContent').innerHTML = `
+                <div class="loading-container" style="text-align: center; padding: 4rem;">
+                    <div class="loading"></div>
+                    <p style="margin-top: 1rem; color: var(--text-secondary);">Loading sample data...</p>
+                </div>
+            `;
+            
+            // Fetch the sample file
+            const response = await fetch('/public/ScheduleSample.xlsx');
+            if (!response.ok) {
+                throw new Error('Failed to load sample data');
+            }
+            
+            const blob = await response.blob();
+            
+            // Convert blob to data URL for sessionStorage
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Store the file data
+                sessionStorage.setItem('scheduleFile', e.target.result);
+                sessionStorage.setItem('scheduleFileName', 'ScheduleSample.xlsx');
+                sessionStorage.setItem('isSampleData', 'true');
+                
+                // Load the main app
+                setTimeout(() => {
+                    window.location.hash = '#app';
+                    loadMainApp();
+                }, 500);
+            };
+            reader.readAsDataURL(blob);
+            
+        } catch (error) {
+            console.error('Error loading sample data:', error);
+            alert('Failed to load sample data. Please try uploading a file instead.');
+            // Restore the landing page
+            window.location.reload();
+        }
     }
     
     // Handle file upload
@@ -126,6 +126,7 @@
         // Setup landing page event listeners
         const uploadBtn = document.getElementById('landingUploadBtn');
         const sampleBtn = document.getElementById('downloadSampleBtn');
+        const tryNowBtn = document.getElementById('tryNowBtn');
         const fileInput = document.getElementById('landingFileInput');
         
         if (uploadBtn) {
@@ -133,7 +134,11 @@
         }
         
         if (sampleBtn) {
-            sampleBtn.addEventListener('click', generateSampleExcel);
+            sampleBtn.addEventListener('click', downloadSampleExcel);
+        }
+        
+        if (tryNowBtn) {
+            tryNowBtn.addEventListener('click', loadSampleData);
         }
         
         if (fileInput) {
@@ -143,7 +148,8 @@
     
     // Expose for potential use
     window.landingPage = {
-        generateSampleExcel,
+        downloadSampleExcel,
+        loadSampleData,
         loadMainApp
     };
 })();
