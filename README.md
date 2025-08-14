@@ -1,133 +1,206 @@
-# Resource Scheduling Tool
+# Resource Scheduler - Production-Grade Next.js Application
 
-A comprehensive HTML-based employee scheduling application with Excel import/export capabilities, optimization algorithms, and MCP server integration for AI agents.
+A client-side only resource scheduling and optimization tool built with Next.js 14+, TypeScript, and Tailwind CSS. All data processing happens in the browser - no backend required.
 
-## Features
+## 🚀 Features
 
-- **Gantt Chart View**: Visual timeline of projects
-- **Hours Management**: Track employee assignments by employee or project
-- **Skills Matrix**: Manage employee skills and proficiency levels
-- **Key Metrics**: Monitor overtime hours, resource utilization, and skills matching
-- **Excel Integration**: Upload and download schedule data in Excel format
-- **Optimization Algorithms**:
-  - Genetic Algorithm for complex multi-objective optimization
-  - Simulated Annealing for local optimization
-  - Constraint Satisfaction for rule-based assignment
-- **MCP Server**: AI agent integration for automated scheduling operations
-- **Vercel Deployment Ready**: Serverless functions for API endpoints
+- **Excel Import/Export**: Upload and download schedule data in Excel format
+- **Gantt Chart Visualization**: Interactive timeline view of projects
+- **Hours Management**: Track and manage employee hours by project or employee
+- **Skills Matrix**: Manage employee skills and proficiency levels  
+- **AI-Powered Optimization**: Multiple algorithms for schedule optimization
+- **Team Filtering**: Focus on specific teams across all views
+- **100% Client-Side**: All processing happens in browser, no data leaves your device
+- **Static Export**: Can be deployed anywhere as static files
 
-## Quick Start
+## 🛠️ Tech Stack
 
-### Local Development
+- **Next.js 15** with App Router
+- **TypeScript** for type safety
+- **Tailwind CSS** for styling
+- **Zustand** for state management
+- **Radix UI** for accessible components
+- **XLSX** for Excel processing
+- **date-fns** for date manipulation
 
-1. Open `index.html` in a web browser
-2. Click "Upload Excel" to load your schedule data
-3. Use the "Optimize Schedule" button to run optimization algorithms
-4. Navigate between Gantt Chart, Hours, and Skills tabs
-5. Make assignments and track resource allocation
-6. Click "Download Excel" to export your updated schedule
+## 📁 Project Structure
 
-### Vercel Deployment
-
-1. Install Vercel CLI:
-```bash
-npm i -g vercel
+```
+├── app/                    # Next.js app directory
+│   ├── layout.tsx         # Root layout
+│   ├── page.tsx           # Landing page
+│   └── schedule/          # Schedule views
+├── components/
+│   ├── features/          # Feature components
+│   │   ├── gantt/        # Gantt chart
+│   │   ├── hours/        # Hours tracking
+│   │   ├── skills/       # Skills matrix
+│   │   └── optimization/ # Optimization modal
+│   ├── layout/           # Layout components
+│   └── providers.tsx     # React Query provider
+├── lib/
+│   ├── excel/            # Excel import/export
+│   ├── optimization/     # Optimization algorithms
+│   └── utils.ts          # Utility functions
+├── store/                # Zustand stores
+├── types/                # TypeScript types
+└── public/               # Static assets
 ```
 
-2. Deploy to Vercel:
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+
 ```bash
-vercel
-```
-
-3. Follow the prompts to deploy your application
-
-### Generate Sample Data
-
-1. Open `generate_sample.html` in a browser
-2. Click "Generate Sample Excel File"
-3. Upload the generated file in the main application
-
-### MCP Server Setup (Local)
-
-1. Install dependencies:
-```bash
+# Install dependencies
 npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Export static files
+npm run export
 ```
 
-2. Run the MCP server:
-```bash
-npm start
-```
+The app will be available at http://localhost:3000
 
-3. Configure your AI agent to connect to the MCP server
+## 📊 Excel File Format
 
-## Excel File Format
-
-The Excel file should contain the following sheets:
+The application expects Excel files with the following sheets:
 
 ### Employees Sheet
-- ID: Unique employee identifier
+- ID: Unique identifier
 - Name: Employee name
-- Email: Employee email
-- Max Hours: Maximum weekly hours (default: 40)
-- [Skill columns]: Proficiency levels (None, Beginner, Intermediate, Advanced, Expert)
+- Email: Employee email (optional)
+- Max Hours: Maximum hours per week
+- Team: Team assignment
+- [Skills]: Additional columns for skills with proficiency levels
 
 ### Projects Sheet
-- ID: Unique project identifier
+- ID: Unique identifier
 - Name: Project name
 - Start Date: Project start date
 - End Date: Project end date
-- Portfolio: Project portfolio/category
 - Required Skills: Comma-separated list of required skills
+- Portfolio: Project portfolio (optional)
 
 ### Assignments Sheet
 - Employee ID: Reference to employee
 - Project ID: Reference to project
-- Hours: Weekly hours allocated
-- Week: Week number
+- Hours: Allocated hours
+- Week: Week identifier (e.g., "JAN 15")
 
 ### Skills Sheet (Optional)
 - Employee: Employee name
-- [Skill columns]: Proficiency levels
+- [Skill columns]: Proficiency levels (Beginner/Intermediate/Expert)
 
-## MCP Server Tools
+## 🎯 Optimization Features
 
-The MCP server provides the following tools for AI agents:
+### Algorithms
 
-- `load_schedule`: Load schedule from Excel file
-- `get_employees`: Retrieve employee list
-- `get_projects`: Retrieve project list
-- `get_assignments`: Get current assignments
-- `assign_resource`: Create or update assignments
-- `calculate_metrics`: Calculate scheduling metrics
-- `check_availability`: Check employee availability
-- `find_skilled_employees`: Find employees with specific skills
-- `optimize_schedule`: Get optimization recommendations
-- `export_schedule`: Export schedule to Excel
+1. **Genetic Algorithm**: Best for complex multi-objective optimization
+2. **Simulated Annealing**: Good for local optimization and fine-tuning
+3. **Constraint Satisfaction**: Fast, rule-based assignment
 
-## Development
+### Optimization Weights
 
-### File Structure
+Adjust the importance of different metrics:
+- **Minimize Overtime**: Reduce hours over employee limits
+- **Maximize Utilization**: Optimize resource usage
+- **Skills Matching**: Match employee skills to project requirements
+
+## 🔒 Privacy & Security
+
+- **100% Client-Side**: All data processing happens in your browser
+- **No Backend**: No servers, no databases, no API calls
+- **No Tracking**: No analytics or user tracking
+- **Local Storage**: Data persisted only in browser localStorage
+- **Export Anytime**: Download your data as Excel at any time
+
+## 📦 Deployment
+
+### Static Export
+
+```bash
+# Build and export static files
+npm run build
+
+# Files will be in 'out' directory
 ```
-/Scheduler
-├── index.html              # Main application
-├── styles.css             # Styling
-├── scheduler.js           # Core JavaScript logic
-├── mcp-server.js         # MCP server implementation
-├── package.json          # Node.js dependencies
-├── generate_sample.html  # Sample data generator
-└── README.md            # Documentation
+
+### Deploy to Vercel
+
+```bash
+vercel --prod
 ```
 
-### Technologies Used
-- HTML5/CSS3/JavaScript
-- XLSX.js for Excel processing
-- MCP SDK for AI agent integration
+### Deploy to GitHub Pages
 
-## Browser Compatibility
+1. Update `next.config.js` with your repository name:
+```js
+const nextConfig = {
+  output: 'export',
+  basePath: '/your-repo-name',
+  // ... rest of config
+}
+```
 
-Works in all modern browsers (Chrome, Firefox, Safari, Edge)
+2. Build and deploy:
+```bash
+npm run build
+# Push 'out' directory to gh-pages branch
+```
 
-## License
+## 🧪 Development
+
+### Code Quality
+
+```bash
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+
+# Format code
+npm run format
+```
+
+### Performance Targets
+
+- Initial Load: < 3 seconds
+- Excel Import: < 5 seconds for 1000 rows
+- UI Updates: < 100ms
+- Bundle Size: < 500KB gzipped
+
+## 📝 License
 
 MIT
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 🐛 Known Issues
+
+- Drag-and-drop in Gantt chart is for demonstration (dates don't persist yet)
+- Optimization algorithms use simplified logic for demonstration
+- Maximum tested with 500 employees and 1000 projects
+
+## 🚗 Roadmap
+
+- [ ] Add undo/redo functionality
+- [ ] Implement real drag-and-drop in Gantt chart
+- [ ] Add more sophisticated optimization algorithms
+- [ ] Add project dependencies
+- [ ] Export to PDF reports
+- [ ] Add keyboard shortcuts
+- [ ] Dark mode support
