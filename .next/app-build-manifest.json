@@ -1,0 +1,32 @@
+{
+  "pages": {
+    "/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/vendor.js",
+      "static/chunks/main-app.js",
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
+    ],
+    "/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/vendor.js",
+      "static/chunks/main-app.js",
+      "static/chunks/common-_app-pages-browser_lib_utils_ts-_app-pages-browser_store_useScheduleStore_ts.js",
+      "static/chunks/app/page.js"
+    ],
+    "/schedule/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/vendor.js",
+      "static/chunks/main-app.js",
+      "static/chunks/common-_app-pages-browser_lib_utils_ts-_app-pages-browser_store_useScheduleStore_ts.js",
+      "static/chunks/app/schedule/layout.js"
+    ],
+    "/schedule/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/vendor.js",
+      "static/chunks/main-app.js",
+      "static/chunks/common-_app-pages-browser_lib_utils_ts-_app-pages-browser_store_useScheduleStore_ts.js",
+      "static/chunks/app/schedule/page.js"
+    ]
+  }
+}
