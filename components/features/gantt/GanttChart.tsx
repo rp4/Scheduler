@@ -2,7 +2,7 @@
 
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useMemo, useRef, useState } from 'react'
-import { format, startOfYear, endOfYear, eachMonthOfInterval, addYears, differenceInDays } from 'date-fns'
+import { format, startOfYear, endOfYear, eachMonthOfInterval, addYears, differenceInDays, addDays } from 'date-fns'
 
 export function GanttChart() {
   const projects = useScheduleStore((state) => state.projects)
@@ -10,7 +10,9 @@ export function GanttChart() {
   const employees = useScheduleStore((state) => state.employees)
   const selectedTeam = useScheduleStore((state) => state.selectedTeam)
   const [draggedProject, setDraggedProject] = useState<string | null>(null)
+  const [dragStartX, setDragStartX] = useState<number>(0)
   const containerRef = useRef<HTMLDivElement>(null)
+  const updateProject = useScheduleStore((state) => state.updateProject)
 
   // Filter projects by team
   const filteredProjects = useMemo(() => {
@@ -44,13 +46,46 @@ export function GanttChart() {
     return (dayOffset / totalDays) * 100
   }
 
-  const handleDragStart = (projectId: string) => {
+  const handleDragStart = (e: React.DragEvent, projectId: string) => {
     setDraggedProject(projectId)
+    setDragStartX(e.clientX)
+    
+    // Create a ghost image for drag feedback
+    const dragImage = new Image()
+    dragImage.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='
+    e.dataTransfer.setDragImage(dragImage, 0, 0)
   }
 
-  const handleDragEnd = () => {
+  const handleDragEnd = (e: React.DragEvent) => {
+    if (!draggedProject || !containerRef.current) {
+      setDraggedProject(null)
+      return
+    }
+
+    const project = projects.find(p => p.id === draggedProject)
+    if (!project) {
+      setDraggedProject(null)
+      return
+    }
+
+    // Calculate the distance moved
+    const deltaX = e.clientX - dragStartX
+    const containerWidth = containerRef.current.offsetWidth
+    const totalDays = differenceInDays(timelineRange.end, timelineRange.start)
+    const daysToMove = Math.round((deltaX / containerWidth) * totalDays)
+
+    if (daysToMove !== 0) {
+      // Update project dates
+      const newStartDate = addDays(project.startDate, daysToMove)
+      const newEndDate = addDays(project.endDate, daysToMove)
+      
+      updateProject(draggedProject, {
+        startDate: newStartDate,
+        endDate: newEndDate
+      })
+    }
+
     setDraggedProject(null)
-    // Here you would update the project dates
   }
 
   if (filteredProjects.length === 0) {
@@ -65,23 +100,17 @@ export function GanttChart() {
     <div className="overflow-x-auto" ref={containerRef}>
       <div className="min-w-[1200px]">
         {/* Timeline Header */}
-        <div className="flex border-b border-gray-200 bg-gray-50">
-          <div className="w-48 px-4 py-2 font-semibold border-r border-gray-200">
-            Project
-          </div>
-          <div className="flex-1 relative">
-            {/* Months */}
-            <div className="flex">
-              {timelineRange.months.map((month, idx) => (
-                <div
-                  key={idx}
-                  className="flex-1 px-2 py-1 text-xs text-center border-r border-gray-200"
-                  style={{ minWidth: '60px' }}
-                >
-                  {format(month, 'MMM yyyy')}
-                </div>
-              ))}
-            </div>
+        <div className="border-b border-gray-200 bg-gray-50">
+          <div className="flex">
+            {timelineRange.months.map((month, idx) => (
+              <div
+                key={idx}
+                className="flex-1 px-2 py-1 text-xs text-center border-r border-gray-200"
+                style={{ minWidth: '60px' }}
+              >
+                {format(month, 'MMM yyyy')}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -92,30 +121,25 @@ export function GanttChart() {
           const width = endPos - startPos
 
           return (
-            <div key={project.id} className="flex border-b border-gray-200 hover:bg-gray-50">
-              <div className="w-48 px-4 py-3 font-medium border-r border-gray-200 truncate">
-                {project.name}
-              </div>
-              <div className="flex-1 relative h-12">
-                <div
-                  className={`absolute top-2 h-8 bg-blue-500 hover:bg-blue-600 rounded cursor-move transition-colors ${
-                    draggedProject === project.id ? 'opacity-50' : ''
-                  }`}
-                  style={{
-                    left: `${startPos}%`,
-                    width: `${width}%`,
-                  }}
-                  draggable
-                  onDragStart={() => handleDragStart(project.id)}
-                  onDragEnd={handleDragEnd}
-                  title={`${project.name}: ${format(project.startDate, 'MMM d, yyyy')} - ${format(
-                    project.endDate,
-                    'MMM d, yyyy'
-                  )}`}
-                >
-                  <div className="px-2 text-xs text-white truncate leading-8">
-                    {project.name}
-                  </div>
+            <div key={project.id} className="border-b border-gray-200 hover:bg-gray-50 relative h-12">
+              <div
+                className={`absolute top-2 h-8 bg-blue-500 hover:bg-blue-600 rounded cursor-move transition-colors ${
+                  draggedProject === project.id ? 'opacity-50' : ''
+                }`}
+                style={{
+                  left: `${startPos}%`,
+                  width: `${width}%`,
+                }}
+                draggable
+                onDragStart={(e) => handleDragStart(e, project.id)}
+                onDragEnd={handleDragEnd}
+                title={`${project.name}: ${format(project.startDate, 'MMM d, yyyy')} - ${format(
+                  project.endDate,
+                  'MMM d, yyyy'
+                )}`}
+              >
+                <div className="px-2 text-xs text-white truncate leading-8">
+                  {project.name}
                 </div>
               </div>
             </div>
@@ -126,7 +150,7 @@ export function GanttChart() {
         <div
           className="absolute top-0 bottom-0 w-px bg-red-500 pointer-events-none z-10"
           style={{
-            left: `calc(192px + ${calculatePosition(new Date())}% * (100% - 192px) / 100)`,
+            left: `${calculatePosition(new Date())}%`,
           }}
         >
           <div className="absolute -top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded">

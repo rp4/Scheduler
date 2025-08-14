@@ -3,15 +3,17 @@
 import React from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useState, useMemo } from 'react'
-import { Users, Briefcase, ChevronDown, ChevronRight } from 'lucide-react'
-import { format, startOfWeek, addWeeks, startOfYear, endOfYear } from 'date-fns'
+import { Users, Briefcase, ChevronDown, ChevronRight, Plus } from 'lucide-react'
+import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, isWithinInterval } from 'date-fns'
 import { generateId } from '@/lib/utils'
+import { Project } from '@/types/schedule'
 
 type ViewMode = 'employee' | 'project'
 
 export function HoursGrid() {
   const [viewMode, setViewMode] = useState<ViewMode>('employee')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+  const [addingToRow, setAddingToRow] = useState<string | null>(null)
   const employees = useScheduleStore((state) => state.employees)
   const projects = useScheduleStore((state) => state.projects)
   const assignments = useScheduleStore((state) => state.assignments)
@@ -39,6 +41,14 @@ export function HoursGrid() {
   // Format week for display and storage
   const formatWeek = (date: Date) => {
     return format(date, 'MMM d').toUpperCase()
+  }
+
+  // Check if a week falls within project date range
+  const isWeekInProjectRange = (weekDate: Date, project: Project) => {
+    const weekEnd = endOfWeek(weekDate, { weekStartsOn: 1 })
+    return isWithinInterval(weekDate, { start: project.startDate, end: project.endDate }) ||
+           isWithinInterval(weekEnd, { start: project.startDate, end: project.endDate }) ||
+           (weekDate <= project.startDate && weekEnd >= project.endDate)
   }
 
   // Toggle row expansion
@@ -207,21 +217,26 @@ export function HoursGrid() {
                         {weeks.slice(0, 12).map((week) => {
                           const weekStr = formatWeek(week)
                           const assignment = getOrCreateAssignment(employee.id, project.id, weekStr)
+                          const isInRange = isWeekInProjectRange(week, project)
                           
                           return (
-                            <td key={week.toISOString()} className="p-1 border border-gray-200 text-center">
-                              <input
-                                type="number"
-                                min="0"
-                                max="168"
-                                value={assignment?.hours || ''}
-                                onChange={(e) => {
-                                  const hours = parseInt(e.target.value) || 0
-                                  handleHoursChange(employee.id, project.id, weekStr, hours)
-                                }}
-                                placeholder="-"
-                                className="w-14 px-1 py-0.5 text-center border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              />
+                            <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center ${isInRange ? 'bg-white' : 'bg-gray-50'}`}>
+                              {isInRange ? (
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="168"
+                                  value={assignment?.hours || ''}
+                                  onChange={(e) => {
+                                    const hours = parseInt(e.target.value) || 0
+                                    handleHoursChange(employee.id, project.id, weekStr, hours)
+                                  }}
+                                  placeholder="-"
+                                  className="w-14 px-1 py-0.5 text-center border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
+                              ) : (
+                                <span className="text-gray-400 text-sm">-</span>
+                              )}
                             </td>
                           )
                         })}
@@ -231,6 +246,49 @@ export function HoursGrid() {
                       </tr>
                     )
                   })}
+                  
+                  {/* Add Project row */}
+                  {isExpanded && (
+                    <tr className="bg-blue-50/30">
+                      <td className="pl-12 p-2 border border-gray-200 sticky left-0 bg-blue-50/30 text-sm">
+                        {addingToRow === employee.id ? (
+                          <select
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                // Create initial assignment for first week
+                                const firstWeek = formatWeek(weeks[0])
+                                handleHoursChange(employee.id, e.target.value, firstWeek, 0)
+                                setAddingToRow(null)
+                                // Keep row expanded to show the new project
+                              }
+                            }}
+                            onBlur={() => setAddingToRow(null)}
+                            autoFocus
+                          >
+                            <option value="">Select a project...</option>
+                            {filteredData.projects
+                              .filter(p => !employeeProjects.some(ep => ep.id === p.id))
+                              .map(project => (
+                                <option key={project.id} value={project.id}>
+                                  {project.name}
+                                </option>
+                              ))
+                            }
+                          </select>
+                        ) : (
+                          <button
+                            onClick={() => setAddingToRow(employee.id)}
+                            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add Project
+                          </button>
+                        )}
+                      </td>
+                      <td className="p-2 border border-gray-200" colSpan={weeks.slice(0, 12).length + 2}></td>
+                    </tr>
+                  )}
                 </React.Fragment>
               )
             })}
@@ -340,21 +398,26 @@ export function HoursGrid() {
                         {weeks.slice(0, 12).map((week) => {
                           const weekStr = formatWeek(week)
                           const assignment = getOrCreateAssignment(employee.id, project.id, weekStr)
+                          const isInRange = isWeekInProjectRange(week, project)
                           
                           return (
-                            <td key={week.toISOString()} className="p-1 border border-gray-200 text-center">
-                              <input
-                                type="number"
-                                min="0"
-                                max="168"
-                                value={assignment?.hours || ''}
-                                onChange={(e) => {
-                                  const hours = parseInt(e.target.value) || 0
-                                  handleHoursChange(employee.id, project.id, weekStr, hours)
-                                }}
-                                placeholder="-"
-                                className="w-14 px-1 py-0.5 text-center border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              />
+                            <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center ${isInRange ? 'bg-white' : 'bg-gray-50'}`}>
+                              {isInRange ? (
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="168"
+                                  value={assignment?.hours || ''}
+                                  onChange={(e) => {
+                                    const hours = parseInt(e.target.value) || 0
+                                    handleHoursChange(employee.id, project.id, weekStr, hours)
+                                  }}
+                                  placeholder="-"
+                                  className="w-14 px-1 py-0.5 text-center border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
+                              ) : (
+                                <span className="text-gray-400 text-sm">-</span>
+                              )}
                             </td>
                           )
                         })}
@@ -364,6 +427,49 @@ export function HoursGrid() {
                       </tr>
                     )
                   })}
+                  
+                  {/* Add Employee row */}
+                  {isExpanded && (
+                    <tr className="bg-blue-50/30">
+                      <td className="pl-12 p-2 border border-gray-200 sticky left-0 bg-blue-50/30 text-sm">
+                        {addingToRow === project.id ? (
+                          <select
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                // Create initial assignment for first week
+                                const firstWeek = formatWeek(weeks[0])
+                                handleHoursChange(e.target.value, project.id, firstWeek, 0)
+                                setAddingToRow(null)
+                                // Keep row expanded to show the new employee
+                              }
+                            }}
+                            onBlur={() => setAddingToRow(null)}
+                            autoFocus
+                          >
+                            <option value="">Select an employee...</option>
+                            {filteredData.employees
+                              .filter(e => !projectEmployees.some(pe => pe.id === e.id))
+                              .map(employee => (
+                                <option key={employee.id} value={employee.id}>
+                                  {employee.name} ({employee.team})
+                                </option>
+                              ))
+                            }
+                          </select>
+                        ) : (
+                          <button
+                            onClick={() => setAddingToRow(project.id)}
+                            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add Employee
+                          </button>
+                        )}
+                      </td>
+                      <td className="p-2 border border-gray-200" colSpan={weeks.slice(0, 12).length + 1}></td>
+                    </tr>
+                  )}
                 </React.Fragment>
               )
             })}
