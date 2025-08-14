@@ -6,13 +6,24 @@ export function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     
+    updateDebugInfo('Loading file', `File: ${file.name}\nSize: ${(file.size/1024).toFixed(2)}KB`);
+    
     const reader = new FileReader();
     reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        
-        parseExcelData(workbook);
-        eventBus.emit('dataLoaded', scheduleData);
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            updateDebugInfo('Parsing Excel', `Sheets found: ${Object.keys(workbook.Sheets).join(', ')}`);
+            parseExcelData(workbook);
+            eventBus.emit('dataLoaded', scheduleData);
+        } catch (error) {
+            updateDebugInfo('Error', `Failed to parse: ${error.message}`);
+            console.error('Excel parsing error:', error);
+        }
+    };
+    reader.onerror = function(error) {
+        updateDebugInfo('Error', `File read failed: ${error}`);
     };
     reader.readAsArrayBuffer(file);
 }
@@ -26,8 +37,12 @@ export function parseExcelData(workbook) {
         teams: ['All Teams']
     };
     
+    const debugDetails = [];
+    
     if (workbook.Sheets['Employees']) {
         const employeeSheet = XLSX.utils.sheet_to_json(workbook.Sheets['Employees']);
+        debugDetails.push(`Employees: ${employeeSheet.length} rows`);
+        console.log('Raw Employee data:', employeeSheet);
         newData.employees = employeeSheet.map(row => ({
             id: row.ID || generateId(),
             name: row.Name || row.Employee,
@@ -40,6 +55,8 @@ export function parseExcelData(workbook) {
     
     if (workbook.Sheets['Projects']) {
         const projectSheet = XLSX.utils.sheet_to_json(workbook.Sheets['Projects']);
+        debugDetails.push(`Projects: ${projectSheet.length} rows`);
+        console.log('Raw Project data:', projectSheet);
         newData.projects = projectSheet.map(row => ({
             id: row.ID || generateId(),
             name: row.Name || row.Project,
@@ -51,17 +68,29 @@ export function parseExcelData(workbook) {
     
     if (workbook.Sheets['Assignments']) {
         const assignmentSheet = XLSX.utils.sheet_to_json(workbook.Sheets['Assignments']);
-        newData.assignments = assignmentSheet.map(row => ({
-            id: generateId(),
-            employeeId: row['Employee ID'] || row.Employee,
-            projectId: row['Project ID'] || row.Project,
-            hours: row.Hours || 0,
-            week: row.Week || getCurrentWeek()
-        }));
+        debugDetails.push(`Assignments: ${assignmentSheet.length} rows`);
+        console.log('Raw Assignment data:', assignmentSheet);
+        
+        newData.assignments = assignmentSheet.map((row, index) => {
+            const assignment = {
+                id: generateId(),
+                employeeId: row['Employee ID'] || row.Employee,
+                projectId: row['Project ID'] || row.Project,
+                hours: parseFloat(row.Hours) || 0,
+                week: row.Week || getCurrentWeek()
+            };
+            console.log(`Assignment ${index + 1}:`, assignment);
+            return assignment;
+        });
+        
+        console.log('Total assignments parsed:', newData.assignments.length);
+    } else {
+        debugDetails.push('Assignments: Sheet not found');
     }
     
     if (workbook.Sheets['Skills']) {
         const skillsSheet = XLSX.utils.sheet_to_json(workbook.Sheets['Skills']);
+        debugDetails.push(`Skills: ${skillsSheet.length} rows`);
         const uniqueSkills = new Set();
         skillsSheet.forEach(row => {
             Object.keys(row).forEach(key => {
@@ -79,7 +108,21 @@ export function parseExcelData(workbook) {
     });
     newData.teams = Array.from(teams);
     
+    // Update debug display
+    const summary = `E:${newData.employees.length} P:${newData.projects.length} A:${newData.assignments.length}`;
+    updateDebugInfo(summary, debugDetails.join('\n'));
+    
+    console.log('Final parsed data:', newData);
     updateScheduleData(newData);
+    
+    // Verify data was actually stored
+    setTimeout(() => {
+        console.log('Verified state after update:', {
+            employees: scheduleData.employees.length,
+            projects: scheduleData.projects.length,
+            assignments: scheduleData.assignments.length
+        });
+    }, 100);
 }
 
 function parseSkills(row) {
@@ -93,6 +136,13 @@ function parseSkills(row) {
         }
     });
     return skills;
+}
+
+function updateDebugInfo(status, details) {
+    const debugStatus = document.getElementById('debugStatus');
+    const debugDetails = document.getElementById('debugDetails');
+    if (debugStatus) debugStatus.textContent = status;
+    if (debugDetails) debugDetails.textContent = details;
 }
 
 export function exportToExcel() {

@@ -12,7 +12,7 @@ let optimizationResult = null;
 let ScheduleOptimizer = null;
 
 // Initialize the application
-function init() {
+async function init() {
     // Wait for XLSX to be available
     if (typeof XLSX === 'undefined') {
         setTimeout(init, 100);
@@ -20,6 +20,10 @@ function init() {
     }
     
     setupEventListeners();
+    
+    // Load test data module for debugging
+    const { loadTestData } = await import('./modules/sampleData.js');
+    window.loadTestData = loadTestData;
     
     // Check if we have pre-loaded data from landing page
     const storedFile = sessionStorage.getItem('scheduleFile');
@@ -43,6 +47,8 @@ function init() {
     window.runOptimization = runOptimization;
     window.applyOptimization = applyOptimization;
     window.discardOptimization = discardOptimization;
+    window.updateUI = updateUI;
+    window.updateTeamDropdown = updateTeamDropdown;
 }
 
 // Load file from sessionStorage
@@ -95,6 +101,21 @@ function setupEventListeners() {
         state.setSelectedTeam(e.target.value);
         updateUI();
     });
+    
+    // Debug: Test data button
+    const testDataBtn = document.getElementById('loadTestDataBtn');
+    if (testDataBtn) {
+        testDataBtn.addEventListener('click', () => {
+            console.log('Loading test data...');
+            if (window.loadTestData) {
+                window.loadTestData();
+                updateTeamDropdown();
+                updateUI();
+            } else {
+                console.error('loadTestData not available');
+            }
+        });
+    }
     
     // Project modal (keeping modal but removing button listener)
     document.getElementById('projectForm').addEventListener('submit', saveProject);

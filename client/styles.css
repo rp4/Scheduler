@@ -74,7 +74,8 @@ body {
     font-size: 14px;
     line-height: 1.5;
     color: var(--text-primary);
-    background-image: url('/public/background.gif'), linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
+    background-image: url('/public/background.gif');
+    background-color: var(--bg-gray-50);
     background-attachment: fixed;
     background-size: cover;
     background-position: center;
@@ -445,10 +446,7 @@ header {
 header h1 {
     font-size: 1.75rem;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-purple) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary-blue);
 }
 
 .header-actions {
@@ -521,6 +519,26 @@ header h1 {
 .metric-card:hover {
     box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
+}
+.metric-card.debug-card {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    border: 2px solid #F59E0B;
+}
+.metric-card.debug-card h3 {
+    color: #92400E;
+}
+.metric-card.debug-card .metric-value {
+    color: #92400E;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+.metric-card.debug-card .metric-description {
+    color: #78350F;
+    font-size: 0.85rem;
+    max-height: 100px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-family: 'Courier New', monospace;
 }
 
 .metric-card h3 {
@@ -605,8 +623,85 @@ header h1 {
     border-radius: var(--radius-lg);
 }
 
+#ganttChart {
+    overflow-x: auto;
+    max-width: 100%;
+}
 .gantt-chart {
-    min-width: 800px;
+    min-width: 2400px; /* Wider to accommodate 3 years of data */
+}
+
+/* Multi-layer header for Gantt chart */
+.gantt-header-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.gantt-header-multi {
+    display: flex;
+    background: var(--bg-white);
+    border-bottom: 2px solid var(--border-gray);
+}
+
+.gantt-header-spacer {
+    width: 150px;
+    background: var(--bg-white);
+    border-right: 1px solid var(--border-gray);
+}
+
+.gantt-header-layers {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.gantt-header-row {
+    display: flex;
+    width: 100%;
+}
+
+.gantt-header-years {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.gantt-year {
+    padding: var(--space-2) var(--space-3);
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.875rem;
+    background: var(--bg-gray-50);
+    border-right: 1px solid var(--border-gray);
+    color: var(--text-primary);
+}
+
+.gantt-header-months {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.gantt-month {
+    padding: var(--space-2) var(--space-3);
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.8rem;
+    background: var(--bg-white);
+    border-right: 1px solid var(--border-light);
+    color: var(--text-secondary);
+}
+
+.gantt-header-weeks {
+    background: var(--bg-white);
+}
+
+.gantt-week {
+    flex: 1;
+    padding: var(--space-2);
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 500;
+    min-width: 60px;
+    border-right: 1px solid var(--border-light);
+    color: var(--text-muted);
 }
 
 .gantt-header {
@@ -670,7 +765,7 @@ header h1 {
 .gantt-bar {
     position: absolute;
     height: 24px;
-    background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+    background: var(--primary-blue);
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
@@ -684,12 +779,35 @@ header h1 {
     top: 50%;
     transform: translateY(-50%);
     transition: var(--transition);
+    cursor: move;
+    user-select: none;
 }
 
 .gantt-bar:hover {
     box-shadow: var(--shadow-md);
     transform: translateY(-50%) scale(1.02);
     z-index: 10;
+}
+
+.gantt-bar.dragging {
+    opacity: 0.8;
+    z-index: 20;
+    transition: none;
+}
+
+.gantt-bar-resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: ew-resize;
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1));
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.gantt-bar-resize-handle:hover {
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.2));
 }
 
 /* Team Selector */
@@ -726,6 +844,72 @@ header h1 {
     outline: none;
     border-color: var(--primary-blue);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Hours Grid */
+#hoursGrid {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.hours-table {
+    min-width: 2400px; /* Wide enough for 3 years of weekly data */
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Multi-layer header for Hours table */
+.hours-header-years th {
+    background: var(--bg-gray-50);
+    border: 1px solid var(--border-gray);
+    font-weight: 700;
+    font-size: 0.875rem;
+    padding: var(--space-2) var(--space-3);
+    text-align: center;
+}
+
+.hours-header-months th {
+    background: var(--bg-white);
+    border: 1px solid var(--border-light);
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: var(--space-2) var(--space-3);
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.hours-header-weeks th {
+    background: var(--bg-white);
+    border: 1px solid var(--border-light);
+    font-weight: 500;
+    font-size: 0.75rem;
+    padding: var(--space-2);
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.hours-header-label,
+.hours-header-total {
+    background: var(--bg-white);
+    border: 1px solid var(--border-gray);
+    font-weight: 600;
+    padding: var(--space-3);
+}
+
+.hours-year {
+    background: var(--bg-gray-50);
+    color: var(--text-primary);
+}
+
+.hours-month {
+    background: var(--bg-white);
+    color: var(--text-secondary);
+}
+
+.hours-week {
+    background: var(--bg-white);
+    color: var(--text-muted);
+    min-width: 60px;
 }
 
 /* Forms and Inputs */
@@ -854,10 +1038,7 @@ textarea::placeholder {
 .landing-header h1 {
     font-size: 3rem;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-purple) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary-blue);
     margin-bottom: var(--space-4);
 }
 
@@ -974,10 +1155,7 @@ textarea::placeholder {
 .feature-icon {
     font-size: 2.5rem;
     margin-bottom: var(--space-3);
-    background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary-blue);
 }
 
 .feature h3 {
@@ -1024,7 +1202,7 @@ textarea::placeholder {
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary-blue), var(--primary-purple));
+    background: var(--primary-blue);
     transition: width 300ms ease;
 }
 
