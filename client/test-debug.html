@@ -3,58 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resource Scheduling Tool</title>
+    <title>Debug - Resource Scheduling Tool</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Landing Page (Ultra lightweight - ~3KB) -->
-    <div id="landing" class="landing-page">
-        <div id="landingContent" class="landing-content">
-            <div class="landing-header">
-                <h1>📊 Resource Scheduling Tool</h1>
-                <p class="landing-subtitle">Optimize your team's time and skills allocation</p>
-            </div>
-            
-            <div class="landing-actions">
-                <div class="action-card">
-                    <h2>📥 Download Sample</h2>
-                    <p>Get a sample Excel file to see the required format and explore features</p>
-                    <button class="btn-secondary landing-btn" id="downloadSampleBtn">
-                        <span class="btn-icon">📥</span>
-                        Download Sample Excel
-                    </button>
-                </div>
-                
-                <div class="action-card">
-                    <h2>📁 Upload Excel</h2>
-                    <p>Upload your own Excel schedule file to begin optimizing</p>
-                    <input type="file" id="landingFileInput" accept=".xlsx,.xls" style="display: none;">
-                    <button class="btn-primary landing-btn" id="landingUploadBtn">
-                        <span class="btn-icon">📁</span>
-                        Upload Excel File
-                    </button>
-                </div>
-                
-                <div class="action-card">
-                    <h2>🚀 Try Now</h2>
-                    <p>Instantly load sample data to explore all features without uploading</p>
-                    <button class="btn-primary landing-btn" id="tryNowBtn">
-                        <span class="btn-icon">🚀</span>
-                        Try with Sample Data
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Main Application (Loaded after file upload) -->
-    <div id="app" style="display: none;">
+    <!-- Main Application (Direct load for debugging) -->
+    <div id="app">
         <div class="container">
             <header>
-                <h1>Resource Scheduling</h1>
+                <h1>Resource Scheduling - Debug Mode</h1>
                 <div class="header-actions">
                     <div class="team-selector-header">
                         <label for="team">Team:</label>
@@ -87,7 +47,7 @@
                     <h3>🐛 Debug Info</h3>
                     <div class="metric-value" id="debugStatus">No data</div>
                     <div class="metric-description" id="debugDetails">Upload file to see details</div>
-                    <button class="btn-debug" id="loadTestDataBtn" style="margin-top: 10px; padding: 5px 10px; font-size: 0.85rem;">Load Test Data</button>
+                    <button class="btn-debug" id="loadTestDataBtn" onclick="if(window.loadTestData) { window.loadTestData(); console.log('Test data loaded via button'); } else { console.error('loadTestData not available yet'); }" style="margin-top: 10px; padding: 5px 10px; font-size: 0.85rem;">Load Test Data</button>
                 </div>
             </div>
             
@@ -196,8 +156,18 @@
         </div>
     </div>
     
-    <!-- Only load XLSX lib and landing script initially -->
+    <!-- Load XLSX and app directly for debugging -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="js/landing.js"></script>
+    <script type="module" src="js/app.js"></script>
+    <script type="module">
+        // Direct import for immediate testing
+        import { loadTestData } from './js/modules/sampleData.js';
+        
+        // Make it globally available immediately
+        window.loadTestData = loadTestData;
+        
+        // Add console message
+        console.log('Debug page loaded. You can run loadTestData() in console or click the button.');
+    </script>
 </body>
 </html>
