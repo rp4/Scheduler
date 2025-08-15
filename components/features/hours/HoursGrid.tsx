@@ -4,7 +4,7 @@ import React from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useState, useMemo } from 'react'
 import { Users, Briefcase, ChevronDown, ChevronRight, Plus } from 'lucide-react'
-import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, isWithinInterval } from 'date-fns'
+import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, isWithinInterval, getMonth, getYear } from 'date-fns'
 import { generateId } from '@/lib/utils'
 import { Project } from '@/types/schedule'
 
@@ -18,9 +18,26 @@ export function HoursGrid() {
   const projects = useScheduleStore((state) => state.projects)
   const assignments = useScheduleStore((state) => state.assignments)
   const selectedTeam = useScheduleStore((state) => state.selectedTeam)
+  
+  // Debug logging
+  useMemo(() => {
+    if (assignments.length > 0) {
+      console.log('🔍 HoursGrid Debug:')
+      console.log('  Total assignments:', assignments.length)
+      console.log('  Sample assignment:', assignments[0])
+      console.log('  Unique weeks in assignments:', [...new Set(assignments.map(a => a.week))])
+      console.log('  Week format expected (sample):', format(new Date(), 'MMM d').toUpperCase())
+    }
+    return null
+  }, [assignments])
   const updateAssignment = useScheduleStore((state) => state.updateAssignment)
   const addAssignment = useScheduleStore((state) => state.addAssignment)
   const removeAssignment = useScheduleStore((state) => state.removeAssignment)
+
+  // Format week for display and storage
+  const formatWeek = (date: Date) => {
+    return format(date, 'MMM d').toUpperCase()
+  }
 
   // Generate weeks for the current year
   const weeks = useMemo(() => {
@@ -37,11 +54,71 @@ export function HoursGrid() {
     
     return weekList
   }, [])
-
-  // Format week for display and storage
-  const formatWeek = (date: Date) => {
-    return format(date, 'MMM d').toUpperCase()
-  }
+  
+  // Get month groups for header spanning
+  const monthGroups = useMemo(() => {
+    const groups: { month: string; year: number; count: number; startIndex: number }[] = []
+    let currentMonth = -1
+    let currentYear = -1
+    let count = 0
+    let startIndex = 0
+    
+    weeks.forEach((week, index) => {
+      const month = getMonth(week)
+      const year = getYear(week)
+      
+      if (month !== currentMonth || year !== currentYear) {
+        if (count > 0) {
+          groups.push({
+            month: format(weeks[startIndex], 'MMMM'),
+            year: currentYear,
+            count,
+            startIndex
+          })
+        }
+        currentMonth = month
+        currentYear = year
+        count = 1
+        startIndex = index
+      } else {
+        count++
+      }
+    })
+    
+    // Add the last group
+    if (count > 0) {
+      groups.push({
+        month: format(weeks[startIndex], 'MMMM'),
+        year: currentYear,
+        count,
+        startIndex
+      })
+    }
+    
+    return groups
+  }, [weeks])
+  
+  // Determine which weeks to show (show all for now, can be filtered later)
+  const [visibleWeekRange, setVisibleWeekRange] = useState<{start: number, end: number}>({ start: 0, end: 52 })
+  
+  // Auto-detect weeks with data and adjust visible range
+  useMemo(() => {
+    if (assignments.length > 0) {
+      // Find the earliest and latest weeks with assignments
+      const weeksWithData = assignments.map(a => a.week)
+      const weekIndices = weeks.map((week, index) => ({
+        week: formatWeek(week),
+        index
+      })).filter(w => weeksWithData.includes(w.week))
+      
+      if (weekIndices.length > 0) {
+        const minIndex = Math.max(0, Math.min(...weekIndices.map(w => w.index)) - 2)
+        const maxIndex = Math.min(weeks.length - 1, Math.max(...weekIndices.map(w => w.index)) + 2)
+        console.log(`📍 Found data in weeks ${minIndex} to ${maxIndex} (weeks: ${formatWeek(weeks[minIndex])} - ${formatWeek(weeks[maxIndex])})`)
+        // For now, still show all weeks but this helps us understand where the data is
+      }
+    }
+  }, [assignments, weeks])
 
   // Check if a week falls within project date range
   const isWeekInProjectRange = (weekDate: Date, project: Project) => {
@@ -85,13 +162,43 @@ export function HoursGrid() {
 
   // Get or create assignment for a specific week
   const getOrCreateAssignment = (employeeId: string, projectId: string, week: string) => {
-    return filteredData.assignments.find(
-      a => a.employeeId === employeeId && a.projectId === projectId && a.week === week
-    )
+    // Try to find by ID first, then by name
+    const employee = filteredData.employees.find(e => e.id === employeeId)
+    const project = filteredData.projects.find(p => p.id === projectId)
+    
+    const found = filteredData.assignments.find(a => {
+      const employeeMatch = a.employeeId === employeeId || 
+                           a.employeeId === employee?.name ||
+                           (employee && a.employeeId === employee.name)
+      const projectMatch = a.projectId === projectId || 
+                          a.projectId === project?.name ||
+                          (project && a.projectId === project.name)
+      return employeeMatch && projectMatch && a.week === week
+    })
+    
+    // Debug: Log when we're looking for an assignment
+    if (!found && filteredData.assignments.length > 0) {
+      const projectAssignments = filteredData.assignments.filter(a => {
+        const employeeMatch = a.employeeId === employeeId || 
+                             a.employeeId === employee?.name
+        const projectMatch = a.projectId === projectId || 
+                            a.projectId === project?.name
+        return employeeMatch && projectMatch
+      })
+      if (projectAssignments.length > 0) {
+        console.log(`  🔍 Looking for week "${week}" but found:`, projectAssignments.map(a => a.week))
+      }
+    }
+    
+    return found
   }
 
   const handleHoursChange = (employeeId: string, projectId: string, week: string, hours: number) => {
     const existing = getOrCreateAssignment(employeeId, projectId, week)
+    
+    // Get the actual employee and project to handle name vs ID
+    const employee = filteredData.employees.find(e => e.id === employeeId)
+    const project = filteredData.projects.find(p => p.id === projectId)
     
     if (existing) {
       if (hours === 0) {
@@ -100,10 +207,16 @@ export function HoursGrid() {
         updateAssignment(existing.id, { hours })
       }
     } else if (hours > 0) {
+      // Use the name if that's what's being used in assignments, otherwise use ID
+      const firstAssignment = filteredData.assignments[0]
+      const useNames = firstAssignment && 
+                       (firstAssignment.employeeId === employee?.name || 
+                        firstAssignment.projectId === project?.name)
+      
       addAssignment({
         id: generateId(),
-        employeeId,
-        projectId,
+        employeeId: useNames ? (employee?.name || employeeId) : employeeId,
+        projectId: useNames ? (project?.name || projectId) : projectId,
         week,
         hours
       })
@@ -113,8 +226,9 @@ export function HoursGrid() {
   const renderEmployeeView = () => {
     // Group assignments by employee and week
     const getEmployeeWeekTotal = (employeeId: string, week: string) => {
+      const employee = filteredData.employees.find(e => e.id === employeeId)
       return filteredData.assignments
-        .filter(a => a.employeeId === employeeId && a.week === week)
+        .filter(a => (a.employeeId === employeeId || a.employeeId === employee?.name) && a.week === week)
         .reduce((sum, a) => sum + a.hours, 0)
     }
 
@@ -122,37 +236,66 @@ export function HoursGrid() {
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-50">
-              <th className="text-left p-3 border border-gray-200 font-semibold sticky left-0 bg-gray-50 z-10 min-w-[250px]">
+            {/* Month/Year header row */}
+            <tr className="bg-gray-100">
+              <th className="text-left p-2 border border-gray-200 font-semibold sticky left-0 bg-gray-100 z-10" rowSpan={2}>
                 Employee
               </th>
-              <th className="text-left p-3 border border-gray-200 font-semibold min-w-[100px]">
+              <th className="text-left p-2 border border-gray-200 font-semibold" rowSpan={2}>
                 Team
               </th>
-              {weeks.slice(0, 12).map((week) => (
-                <th key={week.toISOString()} className="text-center p-2 border border-gray-200 font-semibold min-w-[80px]">
-                  <div className="text-xs">{formatWeek(week)}</div>
+              {monthGroups.map((group, idx) => (
+                <th 
+                  key={idx} 
+                  colSpan={group.count}
+                  className="text-center p-1 border border-gray-200 font-semibold bg-gray-100 text-sm"
+                >
+                  {group.month} {group.year}
                 </th>
               ))}
-              <th className="text-center p-3 border border-gray-200 font-semibold bg-blue-50 min-w-[80px]">
+              <th className="text-center p-2 border border-gray-200 font-semibold bg-blue-50" rowSpan={2}>
                 Total
               </th>
+            </tr>
+            {/* Day header row */}
+            <tr className="bg-gray-50">
+              {weeks.map((week) => (
+                <th key={week.toISOString()} className="text-center p-1 border border-gray-200 font-normal min-w-[50px]">
+                  <div className="text-xs">{format(week, 'd')}</div>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {filteredData.employees.map(employee => {
               const totalHours = filteredData.assignments
-                .filter(a => a.employeeId === employee.id)
+                .filter(a => a.employeeId === employee.id || a.employeeId === employee.name)
                 .reduce((sum, a) => sum + a.hours, 0)
               
               const isExpanded = expandedRows.has(employee.id)
               
               // Get projects this employee is assigned to
-              const employeeProjects = filteredData.projects.filter(project => 
-                filteredData.assignments.some(a => 
-                  a.employeeId === employee.id && a.projectId === project.id
+              const employeeProjects = filteredData.projects.filter(project => {
+                const hasAssignment = filteredData.assignments.some(a => 
+                  (a.employeeId === employee.id || a.employeeId === employee.name) && 
+                  (a.projectId === project.id || a.projectId === project.name)
                 )
-              )
+                
+                // Debug logging for first employee
+                if (employee === filteredData.employees[0] && filteredData.assignments.length > 0) {
+                  console.log(`🔍 Checking projects for ${employee.name} (ID: ${employee.id}):`)
+                  console.log('  Sample assignment:', filteredData.assignments[0])
+                  console.log('  Looking for assignments with:', {
+                    employeeId: employee.id,
+                    employeeName: employee.name,
+                    projectId: project.id,
+                    projectName: project.name
+                  })
+                  console.log('  Found match:', hasAssignment)
+                }
+                
+                return hasAssignment
+              })
 
               return (
                 <React.Fragment key={employee.id}>
@@ -176,7 +319,7 @@ export function HoursGrid() {
                     <td className="p-3 border border-gray-200 text-sm text-gray-600">
                       {employee.team}
                     </td>
-                    {weeks.slice(0, 12).map((week) => {
+                    {weeks.map((week) => {
                       const weekStr = formatWeek(week)
                       const weekTotal = getEmployeeWeekTotal(employee.id, weekStr)
                       const isOvertime = weekTotal > employee.maxHours
@@ -202,7 +345,8 @@ export function HoursGrid() {
                   {/* Expandable project rows for this employee */}
                   {isExpanded && employeeProjects.map(project => {
                     const projectAssignments = filteredData.assignments.filter(
-                      a => a.employeeId === employee.id && a.projectId === project.id
+                      a => (a.employeeId === employee.id || a.employeeId === employee.name) && 
+                           (a.projectId === project.id || a.projectId === project.name)
                     )
 
                     return (
@@ -214,7 +358,7 @@ export function HoursGrid() {
                           </span>
                         </td>
                         <td className="p-2 border border-gray-200"></td>
-                        {weeks.slice(0, 12).map((week) => {
+                        {weeks.map((week) => {
                           const weekStr = formatWeek(week)
                           const assignment = getOrCreateAssignment(employee.id, project.id, weekStr)
                           const isInRange = isWeekInProjectRange(week, project)
@@ -286,7 +430,7 @@ export function HoursGrid() {
                           </button>
                         )}
                       </td>
-                      <td className="p-2 border border-gray-200" colSpan={weeks.slice(0, 12).length + 2}></td>
+                      <td className="p-2 border border-gray-200" colSpan={weeks.length + 2}></td>
                     </tr>
                   )}
                 </React.Fragment>
@@ -301,8 +445,9 @@ export function HoursGrid() {
   const renderProjectView = () => {
     // Group assignments by project and week
     const getProjectWeekTotal = (projectId: string, week: string) => {
+      const project = filteredData.projects.find(p => p.id === projectId)
       return filteredData.assignments
-        .filter(a => a.projectId === projectId && a.week === week)
+        .filter(a => (a.projectId === projectId || a.projectId === project?.name) && a.week === week)
         .reduce((sum, a) => sum + a.hours, 0)
     }
 
@@ -310,24 +455,37 @@ export function HoursGrid() {
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-50">
-              <th className="text-left p-3 border border-gray-200 font-semibold sticky left-0 bg-gray-50 z-10 min-w-[250px]">
+            {/* Month/Year header row */}
+            <tr className="bg-gray-100">
+              <th className="text-left p-2 border border-gray-200 font-semibold sticky left-0 bg-gray-100 z-10" rowSpan={2}>
                 Project
               </th>
-              {weeks.slice(0, 12).map((week) => (
-                <th key={week.toISOString()} className="text-center p-2 border border-gray-200 font-semibold min-w-[80px]">
-                  <div className="text-xs">{formatWeek(week)}</div>
+              {monthGroups.map((group, idx) => (
+                <th 
+                  key={idx} 
+                  colSpan={group.count}
+                  className="text-center p-1 border border-gray-200 font-semibold bg-gray-100 text-sm"
+                >
+                  {group.month} {group.year}
                 </th>
               ))}
-              <th className="text-center p-3 border border-gray-200 font-semibold bg-blue-50 min-w-[80px]">
+              <th className="text-center p-2 border border-gray-200 font-semibold bg-blue-50" rowSpan={2}>
                 Total
               </th>
+            </tr>
+            {/* Day header row */}
+            <tr className="bg-gray-50">
+              {weeks.map((week) => (
+                <th key={week.toISOString()} className="text-center p-1 border border-gray-200 font-normal min-w-[50px]">
+                  <div className="text-xs">{format(week, 'd')}</div>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {filteredData.projects.map(project => {
               const totalHours = filteredData.assignments
-                .filter(a => a.projectId === project.id)
+                .filter(a => a.projectId === project.id || a.projectId === project.name)
                 .reduce((sum, a) => sum + a.hours, 0)
               
               const isExpanded = expandedRows.has(project.id)
@@ -335,7 +493,8 @@ export function HoursGrid() {
               // Get employees assigned to this project
               const projectEmployees = filteredData.employees.filter(employee => 
                 filteredData.assignments.some(a => 
-                  a.employeeId === employee.id && a.projectId === project.id
+                  (a.employeeId === employee.id || a.employeeId === employee.name) && 
+                  (a.projectId === project.id || a.projectId === project.name)
                 )
               )
 
@@ -358,7 +517,7 @@ export function HoursGrid() {
                         )}
                       </button>
                     </td>
-                    {weeks.slice(0, 12).map((week) => {
+                    {weeks.map((week) => {
                       const weekStr = formatWeek(week)
                       const weekTotal = getProjectWeekTotal(project.id, weekStr)
                       
@@ -383,7 +542,8 @@ export function HoursGrid() {
                   {/* Expandable employee rows for this project */}
                   {isExpanded && projectEmployees.map(employee => {
                     const employeeAssignments = filteredData.assignments.filter(
-                      a => a.employeeId === employee.id && a.projectId === project.id
+                      a => (a.employeeId === employee.id || a.employeeId === employee.name) && 
+                           (a.projectId === project.id || a.projectId === project.name)
                     )
 
                     return (
@@ -395,7 +555,7 @@ export function HoursGrid() {
                             <span className="text-xs text-gray-500">({employee.team})</span>
                           </span>
                         </td>
-                        {weeks.slice(0, 12).map((week) => {
+                        {weeks.map((week) => {
                           const weekStr = formatWeek(week)
                           const assignment = getOrCreateAssignment(employee.id, project.id, weekStr)
                           const isInRange = isWeekInProjectRange(week, project)
@@ -467,7 +627,7 @@ export function HoursGrid() {
                           </button>
                         )}
                       </td>
-                      <td className="p-2 border border-gray-200" colSpan={weeks.slice(0, 12).length + 1}></td>
+                      <td className="p-2 border border-gray-200" colSpan={weeks.length + 1}></td>
                     </tr>
                   )}
                 </React.Fragment>
@@ -489,36 +649,45 @@ export function HoursGrid() {
 
   return (
     <div>
-      {/* View Toggle */}
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => setViewMode('employee')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-            viewMode === 'employee'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          By Employee
-        </button>
-        <button
-          onClick={() => setViewMode('project')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-            viewMode === 'project'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <Briefcase className="w-4 h-4" />
-          By Project
-        </button>
+      {/* View Toggle and Controls */}
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setViewMode('employee')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              viewMode === 'employee'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            By Employee
+          </button>
+          <button
+            onClick={() => setViewMode('project')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              viewMode === 'project'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Briefcase className="w-4 h-4" />
+            By Project
+          </button>
+        </div>
+        
+        {/* Week Information */}
+        <div className="text-sm text-gray-600">
+          Showing all {weeks.length} weeks of {new Date().getFullYear()} 
+          {assignments.length > 0 && ` (${assignments.length} assignments)`}
+        </div>
       </div>
 
       {/* Instructions */}
       <div className="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
         <strong>Tips:</strong> Click on a row to expand and see detailed allocations. 
         Enter hours directly in the cells. Red highlights indicate overtime (&gt;40 hours/week).
+        Scroll horizontally to see all weeks of the year.
         {viewMode === 'employee' ? ' View shows each employee\'s project assignments per week.' : ' View shows each project\'s team allocations per week.'}
       </div>
 
