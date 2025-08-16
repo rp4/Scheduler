@@ -21,7 +21,8 @@ export interface Assignment {
   employeeId: string
   projectId: string
   hours: number
-  week: string
+  week: string  // Deprecated - kept for backwards compatibility
+  date?: string // New field: yyyy-MM-dd format for precise date tracking
 }
 
 export type ProficiencyLevel = 'Beginner' | 'Intermediate' | 'Expert'
