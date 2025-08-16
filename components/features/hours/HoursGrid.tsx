@@ -15,6 +15,7 @@ export function HoursGrid() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [addingToRow, setAddingToRow] = useState<string | null>(null)
   const tableRef = useRef<HTMLDivElement>(null)
+  const hasScrolledToCurrentWeek = useRef(false)
   const employees = useScheduleStore((state) => state.employees)
   const projects = useScheduleStore((state) => state.projects)
   const assignments = useScheduleStore((state) => state.assignments)
@@ -90,6 +91,44 @@ export function HoursGrid() {
       format(week, 'yyyy-MM-dd') === format(currentMonday, 'yyyy-MM-dd')
     )
   }, [weeks])
+  
+  // Auto-scroll to current week on initial load
+  useEffect(() => {
+    // Only scroll if we haven't done it yet and have data
+    if (currentWeekIndex >= 0 && tableRef.current && !hasScrolledToCurrentWeek.current && filteredData.employees.length > 0) {
+      // Small delay to ensure the table is fully rendered
+      const timer = setTimeout(() => {
+        if (tableRef.current) {
+          // Find the table element within the ref
+          const table = tableRef.current.querySelector('table')
+          if (table) {
+            // Calculate the position of the current week column
+            // Account for the first 2 fixed columns (Employee/Project and Team)
+            const columnIndex = currentWeekIndex + 2
+            const targetColumn = table.querySelector(`thead tr:last-child th:nth-child(${columnIndex + 1})`) as HTMLElement
+            
+            if (targetColumn) {
+              // Get the position of the column
+              const columnLeft = targetColumn.offsetLeft
+              const columnWidth = targetColumn.offsetWidth
+              const containerWidth = tableRef.current.offsetWidth
+              
+              // Calculate scroll position to center the current week
+              const scrollLeft = columnLeft - (containerWidth / 2) + (columnWidth / 2)
+              
+              // Scroll to the calculated position
+              tableRef.current.scrollLeft = Math.max(0, scrollLeft)
+              hasScrolledToCurrentWeek.current = true
+              
+              console.log(`📍 Auto-scrolled to current week (column ${columnIndex}, scroll: ${scrollLeft}px)`)
+            }
+          }
+        }
+      }, 200) // Slightly longer delay to ensure everything is rendered
+      
+      return () => clearTimeout(timer)
+    }
+  }, [currentWeekIndex, viewMode, filteredData.employees.length]) // Re-run when view mode changes or data loads
   
   // Get month groups for header spanning
   const monthGroups = useMemo(() => {
@@ -783,7 +822,10 @@ export function HoursGrid() {
       <div className="flex justify-between items-center mb-4">
         <div className="flex gap-2">
           <button
-            onClick={() => setViewMode('employee')}
+            onClick={() => {
+              setViewMode('employee')
+              hasScrolledToCurrentWeek.current = false // Reset scroll flag when changing views
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
               viewMode === 'employee'
                 ? 'bg-blue-600 text-white'
@@ -794,7 +836,10 @@ export function HoursGrid() {
             By Employee
           </button>
           <button
-            onClick={() => setViewMode('project')}
+            onClick={() => {
+              setViewMode('project')
+              hasScrolledToCurrentWeek.current = false // Reset scroll flag when changing views
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
               viewMode === 'project'
                 ? 'bg-blue-600 text-white'
