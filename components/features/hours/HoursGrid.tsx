@@ -2,9 +2,9 @@
 
 import React from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
-import { useState, useMemo } from 'react'
-import { Users, Briefcase, ChevronDown, ChevronRight, Plus } from 'lucide-react'
-import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, isWithinInterval, getMonth, getYear } from 'date-fns'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { Users, Briefcase, ChevronDown, ChevronRight, Plus, Calendar } from 'lucide-react'
+import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, isWithinInterval, getMonth, getYear, addYears } from 'date-fns'
 import { generateId } from '@/lib/utils'
 import { Project } from '@/types/schedule'
 
@@ -14,6 +14,7 @@ export function HoursGrid() {
   const [viewMode, setViewMode] = useState<ViewMode>('employee')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [addingToRow, setAddingToRow] = useState<string | null>(null)
+  const tableRef = useRef<HTMLDivElement>(null)
   const employees = useScheduleStore((state) => state.employees)
   const projects = useScheduleStore((state) => state.projects)
   const assignments = useScheduleStore((state) => state.assignments)
@@ -63,21 +64,32 @@ export function HoursGrid() {
     return format(monday, 'yyyy-MM-dd')
   }
 
-  // Generate weeks for the current year
+  // Generate weeks for 3 years (last year, current year, next year)
   const weeks = useMemo(() => {
     const now = new Date()
-    const yearStart = startOfYear(now)
-    const yearEnd = endOfYear(now)
+    // Same logic as Gantt chart: show from start of last year to end of next year
+    const rangeStart = startOfYear(addYears(now, -1))
+    const rangeEnd = endOfYear(addYears(now, 1))
     const weekList: Date[] = []
     
-    let currentWeek = startOfWeek(yearStart, { weekStartsOn: 1 }) // Start on Monday
-    while (currentWeek <= yearEnd) {
+    let currentWeek = startOfWeek(rangeStart, { weekStartsOn: 1 }) // Start on Monday
+    while (currentWeek <= rangeEnd) {
       weekList.push(currentWeek)
       currentWeek = addWeeks(currentWeek, 1)
     }
     
+    console.log(`📅 Displaying ${weekList.length} weeks from ${format(rangeStart, 'MMM yyyy')} to ${format(rangeEnd, 'MMM yyyy')}`)
     return weekList
   }, [])
+  
+  // Find the index of the current week
+  const currentWeekIndex = useMemo(() => {
+    const now = new Date()
+    const currentMonday = startOfWeek(now, { weekStartsOn: 1 })
+    return weeks.findIndex(week => 
+      format(week, 'yyyy-MM-dd') === format(currentMonday, 'yyyy-MM-dd')
+    )
+  }, [weeks])
   
   // Get month groups for header spanning
   const monthGroups = useMemo(() => {
@@ -122,8 +134,8 @@ export function HoursGrid() {
     return groups
   }, [weeks])
   
-  // Determine which weeks to show (show all for now, can be filtered later)
-  const [visibleWeekRange, setVisibleWeekRange] = useState<{start: number, end: number}>({ start: 0, end: 52 })
+  // Determine which weeks to show (show all weeks in the 3-year range)
+  const [visibleWeekRange, setVisibleWeekRange] = useState<{start: number, end: number}>({ start: 0, end: weeks.length })
   
   // Auto-detect weeks with data and adjust visible range
   useMemo(() => {
@@ -275,7 +287,7 @@ export function HoursGrid() {
     }
 
     return (
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" ref={tableRef}>
         <table className="w-full border-collapse">
           <thead>
             {/* Month/Year header row */}
@@ -301,11 +313,21 @@ export function HoursGrid() {
             </tr>
             {/* Day header row */}
             <tr className="bg-gray-50">
-              {weeks.map((week) => (
-                <th key={week.toISOString()} className="text-center p-1 border border-gray-200 font-normal min-w-[50px]">
-                  <div className="text-xs">{format(week, 'd')}</div>
-                </th>
-              ))}
+              {weeks.map((week, index) => {
+                const isCurrentWeek = index === currentWeekIndex
+                return (
+                  <th 
+                    key={week.toISOString()} 
+                    className={`text-center p-1 border border-gray-200 font-normal min-w-[50px] ${
+                      isCurrentWeek ? 'bg-blue-100 border-blue-300' : ''
+                    }`}
+                  >
+                    <div className={`text-xs ${isCurrentWeek ? 'font-semibold text-blue-700' : ''}`}>
+                      {format(week, 'd')}
+                    </div>
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>
@@ -361,15 +383,18 @@ export function HoursGrid() {
                     <td className="p-3 border border-gray-200 text-sm text-gray-600">
                       {employee.team}
                     </td>
-                    {weeks.map((week) => {
+                    {weeks.map((week, weekIndex) => {
                       const weekTotal = getEmployeeWeekTotal(employee.id, week)
                       const isOvertime = weekTotal > employee.maxHours
+                      const isCurrentWeek = weekIndex === currentWeekIndex
                       
                       return (
                         <td 
                           key={week.toISOString()} 
                           className={`p-2 border border-gray-200 text-center ${
-                            isOvertime ? 'bg-red-50' : weekTotal > 0 ? 'bg-green-50' : ''
+                            isCurrentWeek ? 'border-blue-300' : ''
+                          } ${
+                            isOvertime ? 'bg-red-50' : weekTotal > 0 ? 'bg-green-50' : isCurrentWeek ? 'bg-blue-50' : ''
                           }`}
                         >
                           <div className={`font-semibold ${isOvertime ? 'text-red-600' : ''}`}>
@@ -522,7 +547,7 @@ export function HoursGrid() {
     }
 
     return (
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" ref={tableRef}>
         <table className="w-full border-collapse">
           <thead>
             {/* Month/Year header row */}
@@ -545,11 +570,21 @@ export function HoursGrid() {
             </tr>
             {/* Day header row */}
             <tr className="bg-gray-50">
-              {weeks.map((week) => (
-                <th key={week.toISOString()} className="text-center p-1 border border-gray-200 font-normal min-w-[50px]">
-                  <div className="text-xs">{format(week, 'd')}</div>
-                </th>
-              ))}
+              {weeks.map((week, index) => {
+                const isCurrentWeek = index === currentWeekIndex
+                return (
+                  <th 
+                    key={week.toISOString()} 
+                    className={`text-center p-1 border border-gray-200 font-normal min-w-[50px] ${
+                      isCurrentWeek ? 'bg-blue-100 border-blue-300' : ''
+                    }`}
+                  >
+                    <div className={`text-xs ${isCurrentWeek ? 'font-semibold text-blue-700' : ''}`}>
+                      {format(week, 'd')}
+                    </div>
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>
@@ -587,14 +622,17 @@ export function HoursGrid() {
                         )}
                       </button>
                     </td>
-                    {weeks.map((week) => {
+                    {weeks.map((week, weekIndex) => {
                       const weekTotal = getProjectWeekTotal(project.id, week)
+                      const isCurrentWeek = weekIndex === currentWeekIndex
                       
                       return (
                         <td 
                           key={week.toISOString()} 
                           className={`p-2 border border-gray-200 text-center ${
-                            weekTotal > 0 ? 'bg-blue-50' : ''
+                            isCurrentWeek ? 'border-blue-300' : ''
+                          } ${
+                            weekTotal > 0 ? 'bg-blue-50' : isCurrentWeek ? 'bg-blue-100' : ''
                           }`}
                         >
                           <div className="font-semibold">
@@ -766,12 +804,28 @@ export function HoursGrid() {
             <Briefcase className="w-4 h-4" />
             By Project
           </button>
+          {currentWeekIndex >= 0 && (
+            <button
+              onClick={() => {
+                if (tableRef.current) {
+                  const currentWeekElement = tableRef.current.querySelector(`th:nth-child(${currentWeekIndex + 3})`)
+                  if (currentWeekElement) {
+                    currentWeekElement.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+                  }
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+            >
+              <Calendar className="w-4 h-4" />
+              Current Week
+            </button>
+          )}
         </div>
         
         {/* Week Information */}
         <div className="text-sm text-gray-600">
-          Showing all {weeks.length} weeks of {new Date().getFullYear()} 
-          {assignments.length > 0 && ` (${assignments.length} assignments)`}
+          Showing {weeks.length} weeks ({format(weeks[0], 'MMM yyyy')} - {format(weeks[weeks.length - 1], 'MMM yyyy')})
+          {assignments.length > 0 && ` • ${assignments.length} assignments`}
         </div>
       </div>
 
