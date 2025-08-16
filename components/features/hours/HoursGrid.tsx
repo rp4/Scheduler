@@ -95,7 +95,7 @@ export function HoursGrid() {
   // Auto-scroll to current week on initial load
   useEffect(() => {
     // Only scroll if we haven't done it yet and have data
-    if (currentWeekIndex >= 0 && tableRef.current && !hasScrolledToCurrentWeek.current && filteredData.employees.length > 0) {
+    if (currentWeekIndex >= 0 && tableRef.current && !hasScrolledToCurrentWeek.current && employees.length > 0) {
       // Small delay to ensure the table is fully rendered
       const timer = setTimeout(() => {
         if (tableRef.current) {
@@ -128,7 +128,7 @@ export function HoursGrid() {
       
       return () => clearTimeout(timer)
     }
-  }, [currentWeekIndex, viewMode, filteredData.employees.length]) // Re-run when view mode changes or data loads
+  }, [currentWeekIndex, viewMode, employees.length]) // Re-run when view mode changes or data loads
   
   // Get month groups for header spanning
   const monthGroups = useMemo(() => {
