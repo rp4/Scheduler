@@ -25,8 +25,26 @@ export function HoursGrid() {
       console.log('🔍 HoursGrid Debug:')
       console.log('  Total assignments:', assignments.length)
       console.log('  Sample assignment:', assignments[0])
+      console.log('  Assignment details:')
+      assignments.slice(0, 3).forEach((a, i) => {
+        console.log(`    ${i + 1}. Employee: "${a.employeeId}", Project: "${a.projectId}", Week: "${a.week}", Date: "${a.date}", Hours: ${a.hours} (type: ${typeof a.hours})`)
+      })
       console.log('  Unique weeks in assignments:', [...new Set(assignments.map(a => a.week))])
+      console.log('  Unique dates in assignments:', [...new Set(assignments.map(a => a.date).filter(Boolean))])
       console.log('  Week format expected (sample):', format(new Date(), 'MMM d').toUpperCase())
+      
+      // Check if any assignments have non-zero hours
+      const nonZeroHours = assignments.filter(a => a.hours > 0)
+      console.log(`  Assignments with hours > 0: ${nonZeroHours.length} out of ${assignments.length}`)
+      if (nonZeroHours.length > 0) {
+        console.log('  Sample non-zero assignment:', nonZeroHours[0])
+      }
+      
+      // Debug: Check year in dates
+      const datesWithYear = assignments.filter(a => a.date).map(a => a.date)
+      if (datesWithYear.length > 0) {
+        console.log('  Sample dates with year:', datesWithYear.slice(0, 3))
+      }
     }
     return null
   }, [assignments])
@@ -37,6 +55,12 @@ export function HoursGrid() {
   // Format week for display and storage
   const formatWeek = (date: Date) => {
     return format(date, 'MMM d').toUpperCase()
+  }
+  
+  // Format week to yyyy-MM-dd for data lookup
+  const formatWeekToDate = (date: Date) => {
+    const monday = startOfWeek(date, { weekStartsOn: 1 })
+    return format(monday, 'yyyy-MM-dd')
   }
 
   // Generate weeks for the current year
@@ -160,8 +184,11 @@ export function HoursGrid() {
     }
   }, [employees, projects, assignments, selectedTeam])
 
-  // Get or create assignment for a specific week
-  const getOrCreateAssignment = (employeeId: string, projectId: string, week: string) => {
+  // Get or create assignment for a specific week (now using date)
+  const getOrCreateAssignment = (employeeId: string, projectId: string, weekDate: Date) => {
+    const dateStr = formatWeekToDate(weekDate)
+    const weekStr = formatWeek(weekDate)
+    
     // Try to find by ID first, then by name
     const employee = filteredData.employees.find(e => e.id === employeeId)
     const project = filteredData.projects.find(p => p.id === projectId)
@@ -173,28 +200,35 @@ export function HoursGrid() {
       const projectMatch = a.projectId === projectId || 
                           a.projectId === project?.name ||
                           (project && a.projectId === project.name)
-      return employeeMatch && projectMatch && a.week === week
-    })
-    
-    // Debug: Log when we're looking for an assignment
-    if (!found && filteredData.assignments.length > 0) {
-      const projectAssignments = filteredData.assignments.filter(a => {
-        const employeeMatch = a.employeeId === employeeId || 
-                             a.employeeId === employee?.name
-        const projectMatch = a.projectId === projectId || 
-                            a.projectId === project?.name
-        return employeeMatch && projectMatch
-      })
-      if (projectAssignments.length > 0) {
-        console.log(`  🔍 Looking for week "${week}" but found:`, projectAssignments.map(a => a.week))
+      
+      // Check both date and week for backwards compatibility
+      const dateMatch = a.date === dateStr
+      const weekMatch = a.week === weekStr
+      const match = dateMatch || (!a.date && weekMatch)
+      
+      // Debug detailed matching for first few
+      if (employeeMatch && projectMatch && !match && filteredData.assignments.indexOf(a) < 3) {
+        console.log(`  ⚠️ Assignment match except date:`, {
+          employee: `"${employee?.name}"`,
+          project: `"${project?.name}"`,
+          assignmentDate: a.date,
+          assignmentWeek: a.week,
+          lookingForDate: dateStr,
+          lookingForWeek: weekStr,
+          match: match
+        })
       }
-    }
+      
+      return employeeMatch && projectMatch && match
+    })
     
     return found
   }
 
-  const handleHoursChange = (employeeId: string, projectId: string, week: string, hours: number) => {
-    const existing = getOrCreateAssignment(employeeId, projectId, week)
+  const handleHoursChange = (employeeId: string, projectId: string, weekDate: Date, hours: number) => {
+    const existing = getOrCreateAssignment(employeeId, projectId, weekDate)
+    const dateStr = formatWeekToDate(weekDate)
+    const weekStr = formatWeek(weekDate)
     
     // Get the actual employee and project to handle name vs ID
     const employee = filteredData.employees.find(e => e.id === employeeId)
@@ -204,7 +238,7 @@ export function HoursGrid() {
       if (hours === 0) {
         removeAssignment(existing.id)
       } else {
-        updateAssignment(existing.id, { hours })
+        updateAssignment(existing.id, { hours, date: dateStr })
       }
     } else if (hours > 0) {
       // Use the name if that's what's being used in assignments, otherwise use ID
@@ -217,7 +251,8 @@ export function HoursGrid() {
         id: generateId(),
         employeeId: useNames ? (employee?.name || employeeId) : employeeId,
         projectId: useNames ? (project?.name || projectId) : projectId,
-        week,
+        week: weekStr,
+        date: dateStr,
         hours
       })
     }
@@ -225,10 +260,17 @@ export function HoursGrid() {
 
   const renderEmployeeView = () => {
     // Group assignments by employee and week
-    const getEmployeeWeekTotal = (employeeId: string, week: string) => {
+    const getEmployeeWeekTotal = (employeeId: string, weekDate: Date) => {
       const employee = filteredData.employees.find(e => e.id === employeeId)
+      const dateStr = formatWeekToDate(weekDate)
+      const weekStr = formatWeek(weekDate)
+      
       return filteredData.assignments
-        .filter(a => (a.employeeId === employeeId || a.employeeId === employee?.name) && a.week === week)
+        .filter(a => {
+          const employeeMatch = a.employeeId === employeeId || a.employeeId === employee?.name
+          const dateMatch = a.date === dateStr || (!a.date && a.week === weekStr)
+          return employeeMatch && dateMatch
+        })
         .reduce((sum, a) => sum + a.hours, 0)
     }
 
@@ -320,8 +362,7 @@ export function HoursGrid() {
                       {employee.team}
                     </td>
                     {weeks.map((week) => {
-                      const weekStr = formatWeek(week)
-                      const weekTotal = getEmployeeWeekTotal(employee.id, weekStr)
+                      const weekTotal = getEmployeeWeekTotal(employee.id, week)
                       const isOvertime = weekTotal > employee.maxHours
                       
                       return (
@@ -348,6 +389,19 @@ export function HoursGrid() {
                       a => (a.employeeId === employee.id || a.employeeId === employee.name) && 
                            (a.projectId === project.id || a.projectId === project.name)
                     )
+                    
+                    // Debug first project for first employee
+                    if (employee === filteredData.employees[0] && project === employeeProjects[0]) {
+                      console.log('🔍 Debug assignment lookup:', {
+                        employee: `${employee.name} (ID: ${employee.id})`,
+                        project: `${project.name} (ID: ${project.id})`,
+                        foundAssignments: projectAssignments.length,
+                        assignments: projectAssignments.map(a => ({
+                          week: a.week,
+                          hours: a.hours
+                        }))
+                      })
+                    }
 
                     return (
                       <tr key={`${employee.id}-${project.id}`} className="bg-gray-50/50">
@@ -358,10 +412,20 @@ export function HoursGrid() {
                           </span>
                         </td>
                         <td className="p-2 border border-gray-200"></td>
-                        {weeks.map((week) => {
-                          const weekStr = formatWeek(week)
-                          const assignment = getOrCreateAssignment(employee.id, project.id, weekStr)
+                        {weeks.map((week, weekIndex) => {
+                          const assignment = getOrCreateAssignment(employee.id, project.id, week)
                           const isInRange = isWeekInProjectRange(week, project)
+                          
+                          // Debug specific week where we expect data
+                          if (employee === filteredData.employees[0] && 
+                              project === employeeProjects[0] && 
+                              weekIndex >= 30 && weekIndex <= 34) {
+                            console.log(`  Week ${formatWeek(week)} (${formatWeekToDate(week)}):`, {
+                              hasAssignment: !!assignment,
+                              hours: assignment?.hours || 0,
+                              isInRange
+                            })
+                          }
                           
                           return (
                             <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center ${isInRange ? 'bg-white' : 'bg-gray-50'}`}>
@@ -373,7 +437,7 @@ export function HoursGrid() {
                                   value={assignment?.hours || ''}
                                   onChange={(e) => {
                                     const hours = parseInt(e.target.value) || 0
-                                    handleHoursChange(employee.id, project.id, weekStr, hours)
+                                    handleHoursChange(employee.id, project.id, week, hours)
                                   }}
                                   placeholder="-"
                                   className="w-14 px-1 py-0.5 text-center border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -401,8 +465,7 @@ export function HoursGrid() {
                             onChange={(e) => {
                               if (e.target.value) {
                                 // Create initial assignment for first week
-                                const firstWeek = formatWeek(weeks[0])
-                                handleHoursChange(employee.id, e.target.value, firstWeek, 0)
+                                handleHoursChange(employee.id, e.target.value, weeks[0], 0)
                                 setAddingToRow(null)
                                 // Keep row expanded to show the new project
                               }
@@ -444,10 +507,17 @@ export function HoursGrid() {
 
   const renderProjectView = () => {
     // Group assignments by project and week
-    const getProjectWeekTotal = (projectId: string, week: string) => {
+    const getProjectWeekTotal = (projectId: string, weekDate: Date) => {
       const project = filteredData.projects.find(p => p.id === projectId)
+      const dateStr = formatWeekToDate(weekDate)
+      const weekStr = formatWeek(weekDate)
+      
       return filteredData.assignments
-        .filter(a => (a.projectId === projectId || a.projectId === project?.name) && a.week === week)
+        .filter(a => {
+          const projectMatch = a.projectId === projectId || a.projectId === project?.name
+          const dateMatch = a.date === dateStr || (!a.date && a.week === weekStr)
+          return projectMatch && dateMatch
+        })
         .reduce((sum, a) => sum + a.hours, 0)
     }
 
@@ -518,8 +588,7 @@ export function HoursGrid() {
                       </button>
                     </td>
                     {weeks.map((week) => {
-                      const weekStr = formatWeek(week)
-                      const weekTotal = getProjectWeekTotal(project.id, weekStr)
+                      const weekTotal = getProjectWeekTotal(project.id, week)
                       
                       return (
                         <td 
@@ -556,8 +625,7 @@ export function HoursGrid() {
                           </span>
                         </td>
                         {weeks.map((week) => {
-                          const weekStr = formatWeek(week)
-                          const assignment = getOrCreateAssignment(employee.id, project.id, weekStr)
+                          const assignment = getOrCreateAssignment(employee.id, project.id, week)
                           const isInRange = isWeekInProjectRange(week, project)
                           
                           return (
@@ -570,7 +638,7 @@ export function HoursGrid() {
                                   value={assignment?.hours || ''}
                                   onChange={(e) => {
                                     const hours = parseInt(e.target.value) || 0
-                                    handleHoursChange(employee.id, project.id, weekStr, hours)
+                                    handleHoursChange(employee.id, project.id, week, hours)
                                   }}
                                   placeholder="-"
                                   className="w-14 px-1 py-0.5 text-center border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -598,8 +666,7 @@ export function HoursGrid() {
                             onChange={(e) => {
                               if (e.target.value) {
                                 // Create initial assignment for first week
-                                const firstWeek = formatWeek(weeks[0])
-                                handleHoursChange(e.target.value, project.id, firstWeek, 0)
+                                handleHoursChange(e.target.value, project.id, weeks[0], 0)
                                 setAddingToRow(null)
                                 // Keep row expanded to show the new employee
                               }
@@ -649,6 +716,31 @@ export function HoursGrid() {
 
   return (
     <div>
+      {/* Debug Panel - Temporary */}
+      {assignments.length > 0 && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs">
+          <strong>Debug - Raw Assignment Data:</strong>
+          <div className="mt-2 grid grid-cols-2 gap-4">
+            <div>
+              <div className="font-semibold">First 5 Assignments:</div>
+              {assignments.slice(0, 5).map((a, i) => (
+                <div key={i} className="mt-1 p-1 bg-white rounded border">
+                  Employee: "{a.employeeId}" | Project: "{a.projectId}" | Week: "{a.week}" | Hours: {a.hours}
+                </div>
+              ))}
+            </div>
+            <div>
+              <div className="font-semibold">Data Summary:</div>
+              <div>Total Assignments: {assignments.length}</div>
+              <div>Assignments with hours {">"} 0: {assignments.filter(a => a.hours > 0).length}</div>
+              <div>Unique Weeks: {[...new Set(assignments.map(a => a.week))].join(', ')}</div>
+              <div>Sample Employee IDs: {[...new Set(assignments.map(a => a.employeeId))].slice(0, 3).join(', ')}</div>
+              <div>Sample Project IDs: {[...new Set(assignments.map(a => a.projectId))].slice(0, 3).join(', ')}</div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* View Toggle and Controls */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex gap-2">

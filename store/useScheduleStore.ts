@@ -33,10 +33,25 @@ export const useScheduleStore = create<ScheduleState>()(
       selectedTeam: 'All Teams',
       hasHydrated: false,
 
-      loadData: (data) => set(() => ({
-        ...data,
-        teams: ['All Teams', ...Array.from(new Set(data.employees.map(e => e.team).filter(Boolean)))],
-      })),
+      loadData: (data) => {
+        console.log('📦 Storing data in Zustand:', {
+          employees: data.employees.length,
+          projects: data.projects.length,
+          assignments: data.assignments.length,
+          sampleAssignment: data.assignments[0],
+          assignmentStructure: data.assignments.slice(0, 3).map(a => ({
+            employeeId: a.employeeId,
+            projectId: a.projectId,
+            week: a.week,
+            hours: a.hours
+          }))
+        })
+        
+        return set(() => ({
+          ...data,
+          teams: ['All Teams', ...Array.from(new Set(data.employees.map(e => e.team).filter(Boolean)))],
+        }))
+      },
 
       setSelectedTeam: (team) => set({ selectedTeam: team }),
 
