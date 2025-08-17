@@ -20,36 +20,6 @@ export function HoursGrid() {
   const projects = useScheduleStore((state) => state.projects)
   const assignments = useScheduleStore((state) => state.assignments)
   const selectedTeam = useScheduleStore((state) => state.selectedTeam)
-  
-  // Debug logging
-  useMemo(() => {
-    if (assignments.length > 0) {
-      console.log('🔍 HoursGrid Debug:')
-      console.log('  Total assignments:', assignments.length)
-      console.log('  Sample assignment:', assignments[0])
-      console.log('  Assignment details:')
-      assignments.slice(0, 3).forEach((a, i) => {
-        console.log(`    ${i + 1}. Employee: "${a.employeeId}", Project: "${a.projectId}", Week: "${a.week}", Date: "${a.date}", Hours: ${a.hours} (type: ${typeof a.hours})`)
-      })
-      console.log('  Unique weeks in assignments:', [...new Set(assignments.map(a => a.week))])
-      console.log('  Unique dates in assignments:', [...new Set(assignments.map(a => a.date).filter(Boolean))])
-      console.log('  Week format expected (sample):', format(new Date(), 'MMM d').toUpperCase())
-      
-      // Check if any assignments have non-zero hours
-      const nonZeroHours = assignments.filter(a => a.hours > 0)
-      console.log(`  Assignments with hours > 0: ${nonZeroHours.length} out of ${assignments.length}`)
-      if (nonZeroHours.length > 0) {
-        console.log('  Sample non-zero assignment:', nonZeroHours[0])
-      }
-      
-      // Debug: Check year in dates
-      const datesWithYear = assignments.filter(a => a.date).map(a => a.date)
-      if (datesWithYear.length > 0) {
-        console.log('  Sample dates with year:', datesWithYear.slice(0, 3))
-      }
-    }
-    return null
-  }, [assignments])
   const updateAssignment = useScheduleStore((state) => state.updateAssignment)
   const addAssignment = useScheduleStore((state) => state.addAssignment)
   const removeAssignment = useScheduleStore((state) => state.removeAssignment)
@@ -79,7 +49,6 @@ export function HoursGrid() {
       currentWeek = addWeeks(currentWeek, 1)
     }
     
-    console.log(`📅 Displaying ${weekList.length} weeks from ${format(rangeStart, 'MMM yyyy')} to ${format(rangeEnd, 'MMM yyyy')}`)
     return weekList
   }, [])
   
@@ -119,8 +88,6 @@ export function HoursGrid() {
               // Scroll to the calculated position
               tableRef.current.scrollLeft = Math.max(0, scrollLeft)
               hasScrolledToCurrentWeek.current = true
-              
-              console.log(`📍 Auto-scrolled to current week (column ${columnIndex}, scroll: ${scrollLeft}px)`)
             }
           }
         }
@@ -189,7 +156,6 @@ export function HoursGrid() {
       if (weekIndices.length > 0) {
         const minIndex = Math.max(0, Math.min(...weekIndices.map(w => w.index)) - 2)
         const maxIndex = Math.min(weeks.length - 1, Math.max(...weekIndices.map(w => w.index)) + 2)
-        console.log(`📍 Found data in weeks ${minIndex} to ${maxIndex} (weeks: ${formatWeek(weeks[minIndex])} - ${formatWeek(weeks[maxIndex])})`)
         // For now, still show all weeks but this helps us understand where the data is
       }
     }
@@ -216,22 +182,48 @@ export function HoursGrid() {
     })
   }
 
-  // Filter data by team
+  // Filter data by team - show team employees and all projects they work on
   const filteredData = useMemo(() => {
     if (selectedTeam === 'All Teams') {
       return { employees, projects, assignments }
     }
 
+    // Get employees in the selected team
     const teamEmployees = employees.filter(e => e.team === selectedTeam)
-    const teamEmployeeIds = teamEmployees.map(e => e.id)
-    const teamAssignments = assignments.filter(a => teamEmployeeIds.includes(a.employeeId))
-    const teamProjectIds = new Set(teamAssignments.map(a => a.projectId))
-    const teamProjects = projects.filter(p => teamProjectIds.has(p.id))
+    const teamEmployeeIds = new Set(teamEmployees.map(e => e.id))
+    
+    // Find all projects that have ANY assignments from team members
+    const projectsWithTeamMembers = new Set<string>()
+    assignments.forEach(a => {
+      // Check if this assignment is from a team member (handle both ID and name references)
+      const employee = employees.find(e => e.id === a.employeeId || e.name === a.employeeId)
+      if (employee && teamEmployeeIds.has(employee.id)) {
+        // Add both project ID and name to handle both reference types
+        projectsWithTeamMembers.add(a.projectId)
+        const project = projects.find(p => p.id === a.projectId || p.name === a.projectId)
+        if (project) {
+          projectsWithTeamMembers.add(project.id)
+        }
+      }
+    })
+    
+    // Include all projects that team members work on
+    const teamProjects = projects.filter(p => 
+      projectsWithTeamMembers.has(p.id) || projectsWithTeamMembers.has(p.name)
+    )
+    
+    // Include ALL assignments for those projects (not just team member assignments)
+    // This allows seeing the full context of the project
+    const teamProjectIds = new Set(teamProjects.map(p => p.id))
+    const teamProjectNames = new Set(teamProjects.map(p => p.name))
+    const relevantAssignments = assignments.filter(a => 
+      teamProjectIds.has(a.projectId) || teamProjectNames.has(a.projectId)
+    )
 
     return {
       employees: teamEmployees,
       projects: teamProjects,
-      assignments: teamAssignments,
+      assignments: relevantAssignments,
     }
   }, [employees, projects, assignments, selectedTeam])
 
@@ -257,18 +249,6 @@ export function HoursGrid() {
       const weekMatch = a.week === weekStr
       const match = dateMatch || (!a.date && weekMatch)
       
-      // Debug detailed matching for first few
-      if (employeeMatch && projectMatch && !match && filteredData.assignments.indexOf(a) < 3) {
-        console.log(`  ⚠️ Assignment match except date:`, {
-          employee: `"${employee?.name}"`,
-          project: `"${project?.name}"`,
-          assignmentDate: a.date,
-          assignmentWeek: a.week,
-          lookingForDate: dateStr,
-          lookingForWeek: weekStr,
-          match: match
-        })
-      }
       
       return employeeMatch && projectMatch && match
     })
@@ -384,19 +364,6 @@ export function HoursGrid() {
                   (a.projectId === project.id || a.projectId === project.name)
                 )
                 
-                // Debug logging for first employee
-                if (employee === filteredData.employees[0] && filteredData.assignments.length > 0) {
-                  console.log(`🔍 Checking projects for ${employee.name} (ID: ${employee.id}):`)
-                  console.log('  Sample assignment:', filteredData.assignments[0])
-                  console.log('  Looking for assignments with:', {
-                    employeeId: employee.id,
-                    employeeName: employee.name,
-                    projectId: project.id,
-                    projectName: project.name
-                  })
-                  console.log('  Found match:', hasAssignment)
-                }
-                
                 return hasAssignment
               })
 
@@ -454,18 +421,6 @@ export function HoursGrid() {
                            (a.projectId === project.id || a.projectId === project.name)
                     )
                     
-                    // Debug first project for first employee
-                    if (employee === filteredData.employees[0] && project === employeeProjects[0]) {
-                      console.log('🔍 Debug assignment lookup:', {
-                        employee: `${employee.name} (ID: ${employee.id})`,
-                        project: `${project.name} (ID: ${project.id})`,
-                        foundAssignments: projectAssignments.length,
-                        assignments: projectAssignments.map(a => ({
-                          week: a.week,
-                          hours: a.hours
-                        }))
-                      })
-                    }
 
                     return (
                       <tr key={`${employee.id}-${project.id}`} className="bg-gray-50/50">
@@ -481,15 +436,6 @@ export function HoursGrid() {
                           const isInRange = isWeekInProjectRange(week, project)
                           
                           // Debug specific week where we expect data
-                          if (employee === filteredData.employees[0] && 
-                              project === employeeProjects[0] && 
-                              weekIndex >= 30 && weekIndex <= 34) {
-                            console.log(`  Week ${formatWeek(week)} (${formatWeekToDate(week)}):`, {
-                              hasAssignment: !!assignment,
-                              hours: assignment?.hours || 0,
-                              isInRange
-                            })
-                          }
                           
                           return (
                             <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center ${isInRange ? 'bg-white' : 'bg-gray-50'}`}>
@@ -793,31 +739,6 @@ export function HoursGrid() {
 
   return (
     <div>
-      {/* Debug Panel - Temporary */}
-      {assignments.length > 0 && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs">
-          <strong>Debug - Raw Assignment Data:</strong>
-          <div className="mt-2 grid grid-cols-2 gap-4">
-            <div>
-              <div className="font-semibold">First 5 Assignments:</div>
-              {assignments.slice(0, 5).map((a, i) => (
-                <div key={i} className="mt-1 p-1 bg-white rounded border">
-                  Employee: "{a.employeeId}" | Project: "{a.projectId}" | Week: "{a.week}" | Hours: {a.hours}
-                </div>
-              ))}
-            </div>
-            <div>
-              <div className="font-semibold">Data Summary:</div>
-              <div>Total Assignments: {assignments.length}</div>
-              <div>Assignments with hours {">"} 0: {assignments.filter(a => a.hours > 0).length}</div>
-              <div>Unique Weeks: {[...new Set(assignments.map(a => a.week))].join(', ')}</div>
-              <div>Sample Employee IDs: {[...new Set(assignments.map(a => a.employeeId))].slice(0, 3).join(', ')}</div>
-              <div>Sample Project IDs: {[...new Set(assignments.map(a => a.projectId))].slice(0, 3).join(', ')}</div>
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* View Toggle and Controls */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex gap-2">
@@ -872,14 +793,6 @@ export function HoursGrid() {
           Showing {weeks.length} weeks ({format(weeks[0], 'MMM yyyy')} - {format(weeks[weeks.length - 1], 'MMM yyyy')})
           {assignments.length > 0 && ` • ${assignments.length} assignments`}
         </div>
-      </div>
-
-      {/* Instructions */}
-      <div className="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
-        <strong>Tips:</strong> Click on a row to expand and see detailed allocations. 
-        Enter hours directly in the cells. Red highlights indicate overtime (&gt;40 hours/week).
-        Scroll horizontally to see all weeks of the year.
-        {viewMode === 'employee' ? ' View shows each employee\'s project assignments per week.' : ' View shows each project\'s team allocations per week.'}
       </div>
 
       {/* Grid */}

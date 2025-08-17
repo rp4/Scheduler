@@ -14,17 +14,35 @@ const proficiencyColors = {
 
 export function SkillsMatrix() {
   const employees = useScheduleStore((state) => state.employees)
+  const projects = useScheduleStore((state) => state.projects)
+  const assignments = useScheduleStore((state) => state.assignments)
   const skills = useScheduleStore((state) => state.skills)
   const selectedTeam = useScheduleStore((state) => state.selectedTeam)
   const updateEmployee = useScheduleStore((state) => state.updateEmployee)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
+  const [selectedProject, setSelectedProject] = useState<string | null>(null)
 
-  // Filter employees by team and search
+  // Filter employees by team, project, and search
   const filteredEmployees = useMemo(() => {
     let filtered = selectedTeam === 'All Teams' 
       ? employees 
       : employees.filter(e => e.team === selectedTeam)
+
+    // Filter by project if selected
+    if (selectedProject) {
+      const project = projects.find(p => p.id === selectedProject)
+      const employeeIdsInProject = new Set(
+        assignments
+          .filter(a => a.projectId === selectedProject || a.projectId === project?.name)
+          .map(a => {
+            // Handle both employee ID and name references
+            const employee = employees.find(e => e.id === a.employeeId || e.name === a.employeeId)
+            return employee?.id || a.employeeId
+          })
+      )
+      filtered = filtered.filter(e => employeeIdsInProject.has(e.id))
+    }
 
     if (searchTerm) {
       filtered = filtered.filter(e => 
@@ -38,7 +56,7 @@ export function SkillsMatrix() {
     }
 
     return filtered
-  }, [employees, selectedTeam, searchTerm, selectedSkill])
+  }, [employees, projects, assignments, selectedTeam, selectedProject, searchTerm, selectedSkill])
 
   const handleProficiencyChange = (
     employeeId: string,
@@ -80,6 +98,16 @@ export function SkillsMatrix() {
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        <select
+          value={selectedProject || ''}
+          onChange={(e) => setSelectedProject(e.target.value || null)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Projects</option>
+          {projects.map(project => (
+            <option key={project.id} value={project.id}>{project.name}</option>
+          ))}
+        </select>
         <select
           value={selectedSkill || ''}
           onChange={(e) => setSelectedSkill(e.target.value || null)}

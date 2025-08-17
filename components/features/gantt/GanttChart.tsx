@@ -29,21 +29,33 @@ export function GanttChart() {
     }
   }, [])
   
-  // Filter projects by team
+  // Filter projects by team - show all projects that team members work on
   const filteredProjects = useMemo(() => {
     if (selectedTeam === 'All Teams') return projects
     
-    const teamEmployeeIds = employees
-      .filter(e => e.team === selectedTeam)
-      .map(e => e.id)
+    // Get employees in the selected team
+    const teamEmployees = employees.filter(e => e.team === selectedTeam)
+    const teamEmployeeIds = new Set(teamEmployees.map(e => e.id))
     
-    const projectIds = new Set(
-      assignments
-        .filter(a => teamEmployeeIds.includes(a.employeeId))
-        .map(a => a.projectId)
+    // Find all projects that have ANY assignments from team members
+    const projectsWithTeamMembers = new Set<string>()
+    assignments.forEach(a => {
+      // Check if this assignment is from a team member (handle both ID and name references)
+      const employee = employees.find(e => e.id === a.employeeId || e.name === a.employeeId)
+      if (employee && teamEmployeeIds.has(employee.id)) {
+        // Add both project ID and name to handle both reference types
+        projectsWithTeamMembers.add(a.projectId)
+        const project = projects.find(p => p.id === a.projectId || p.name === a.projectId)
+        if (project) {
+          projectsWithTeamMembers.add(project.id)
+        }
+      }
+    })
+    
+    // Return all projects that team members work on
+    return projects.filter(p => 
+      projectsWithTeamMembers.has(p.id) || projectsWithTeamMembers.has(p.name)
     )
-    
-    return projects.filter(p => projectIds.has(p.id))
   }, [projects, assignments, employees, selectedTeam])
   
   // Convert projects to Gantt tasks format
