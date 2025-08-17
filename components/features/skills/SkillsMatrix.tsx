@@ -182,29 +182,42 @@ export function SkillsMatrix() {
                 })}
               </tr>
             ))}
+            {/* Totals Row */}
+            <tr className="bg-gray-100 font-semibold">
+              <td className="p-3 border border-gray-200 sticky left-0 bg-gray-100">
+                Totals
+              </td>
+              <td className="p-3 border border-gray-200">
+                {/* Empty cell for Team column */}
+              </td>
+              {skills.map(skill => {
+                const experts = filteredEmployees.filter(e => e.skills[skill] === 'Expert').length
+                const intermediate = filteredEmployees.filter(e => e.skills[skill] === 'Intermediate').length
+                const beginners = filteredEmployees.filter(e => e.skills[skill] === 'Beginner').length
+                const total = experts + intermediate + beginners
+                
+                return (
+                  <td key={skill} className="p-3 border border-gray-200 text-center text-sm">
+                    {total > 0 ? (
+                      <div className="space-y-1">
+                        <div className="text-xs text-gray-600">
+                          {experts > 0 && <span className="text-green-700">{experts}E</span>}
+                          {experts > 0 && intermediate > 0 && <span className="text-gray-400"> / </span>}
+                          {intermediate > 0 && <span className="text-blue-700">{intermediate}I</span>}
+                          {(experts > 0 || intermediate > 0) && beginners > 0 && <span className="text-gray-400"> / </span>}
+                          {beginners > 0 && <span className="text-yellow-700">{beginners}B</span>}
+                        </div>
+                        <div className="font-bold text-gray-900">{total}</div>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                )
+              })}
+            </tr>
           </tbody>
         </table>
-      </div>
-
-      {/* Summary */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-semibold mb-2">Skills Summary</h3>
-        <div className="grid grid-cols-3 gap-4 text-sm">
-          {skills.slice(0, 6).map(skill => {
-            const experts = filteredEmployees.filter(e => e.skills[skill] === 'Expert').length
-            const intermediate = filteredEmployees.filter(e => e.skills[skill] === 'Intermediate').length
-            const beginners = filteredEmployees.filter(e => e.skills[skill] === 'Beginner').length
-            
-            return (
-              <div key={skill} className="flex justify-between">
-                <span className="font-medium">{skill}:</span>
-                <span className="text-gray-600">
-                  {experts}E / {intermediate}I / {beginners}B
-                </span>
-              </div>
-            )
-          })}
-        </div>
       </div>
     </div>
   )
