@@ -1,4 +1,61 @@
-import { Employee, Project, Assignment } from '@/types/schedule'
+import { Employee, Project, Assignment, ProficiencyLevel } from '@/types/schedule'
+
+// Pre-compute proficiency scores for performance
+const PROFICIENCY_SCORES: Record<ProficiencyLevel, number> = {
+  'Beginner': 1,
+  'Intermediate': 2,
+  'Expert': 3
+}
+
+/**
+ * Fast resource utilization calculation accounting for time periods.
+ * Formula: (Total Assigned Hours / Total Max Capacity) * 100
+ * 
+ * @example
+ * // John with maxHours=40, assigned 10hrs week1 + 50hrs week2
+ * // Result: (60 / 80) * 100 = 75%
+ * 
+ * @param employees - Array of employees with maxHours
+ * @param assignments - Array of assignments with hours and time periods
+ * @returns Resource utilization percentage (0-100)
+ */
+export function calculateResourceUtilization(
+  employees: Employee[],
+  assignments: Assignment[]
+): number {
+  // Early exit for empty data
+  if (!employees.length) return 0
+  
+  // Group assignments by time period and track employee hours
+  const timePeriodsSet = new Set<string>()
+  const employeeAssignedHours = new Map<string, number>()
+  
+  // Single pass: collect time periods and sum hours per employee
+  for (const assignment of assignments) {
+    const timeKey = assignment.date || assignment.week
+    timePeriodsSet.add(timeKey)
+    
+    employeeAssignedHours.set(
+      assignment.employeeId,
+      (employeeAssignedHours.get(assignment.employeeId) || 0) + assignment.hours
+    )
+  }
+  
+  // Calculate total capacity: sum(employee.maxHours) * numPeriods
+  const numPeriods = Math.max(1, timePeriodsSet.size)
+  let totalMaxCapacity = 0
+  let totalAssignedHours = 0
+  
+  for (const employee of employees) {
+    totalMaxCapacity += employee.maxHours * numPeriods
+    totalAssignedHours += employeeAssignedHours.get(employee.id) || 0
+  }
+  
+  // Return percentage (0-100)
+  return totalMaxCapacity > 0 
+    ? Math.round((totalAssignedHours / totalMaxCapacity) * 100)
+    : 0
+}
 
 export function calculateMetrics(
   employees: Employee[],
@@ -6,11 +63,16 @@ export function calculateMetrics(
   assignments: Assignment[]
 ) {
   let overtimeHours = 0
-  let totalCapacity = 0
-  let totalUsed = 0
-  let skillsMatching = 0
+  
+  // Pre-compute lookups for performance
+  const employeeMap = new Map<string, Employee>()
+  const projectMap = new Map<string, Project>()
+  
+  employees.forEach(emp => employeeMap.set(emp.id, emp))
+  projects.forEach(proj => projectMap.set(proj.id, proj))
 
-  // Calculate overtime and utilization
+
+  // Calculate overtime in single pass
   const employeeHours = new Map<string, number>()
   
   assignments.forEach(assignment => {
@@ -20,45 +82,117 @@ export function calculateMetrics(
 
   employees.forEach(employee => {
     const hours = employeeHours.get(employee.id) || 0
-    totalCapacity += employee.maxHours
-    totalUsed += Math.min(hours, employee.maxHours)
-    
     if (hours > employee.maxHours) {
       overtimeHours += hours - employee.maxHours
     }
   })
 
-  // Calculate skills matching
-  assignments.forEach(assignment => {
-    const employee = employees.find(e => e.id === assignment.employeeId)
-    const project = projects.find(p => p.id === assignment.projectId)
-    
-    if (employee && project && project.requiredSkills) {
-      project.requiredSkills.forEach(skill => {
-        if (employee.skills[skill]) {
-          switch (employee.skills[skill]) {
-            case 'Expert':
-              skillsMatching += 3
-              break
-            case 'Intermediate':
-              skillsMatching += 2
-              break
-            case 'Beginner':
-              skillsMatching += 1
-              break
-          }
-        }
-      })
-    }
-  })
+  // Use optimized utilization calculation
+  const resourceUtilization = calculateResourceUtilization(employees, assignments)
 
-  const resourceUtilization = totalCapacity > 0 
-    ? Math.round((totalUsed / totalCapacity) * 100)
-    : 0
+  // Calculate skills matching using optimized function
+  const skillsMatching = calculateSkillsMatch(assignments, employeeMap, projectMap)
 
   return {
     overtimeHours: Math.round(overtimeHours),
     resourceUtilization,
     skillsMatching: Math.round(skillsMatching),
   }
+}
+
+/**
+ * Optimized skills matching calculation for use in optimization algorithms.
+ * Returns total skill points based on employee proficiency levels matching project requirements.
+ * 
+ * Scoring: Beginner = 1 point, Intermediate = 2 points, Expert = 3 points
+ * 
+ * @param assignments - Array of assignments to evaluate
+ * @param employeeMap - Pre-computed map of employee ID to Employee for O(1) lookup
+ * @param projectMap - Pre-computed map of project ID to Project for O(1) lookup
+ * @returns Total skill matching score
+ */
+export function calculateSkillsMatch(
+  assignments: Assignment[],
+  employeeMap: Map<string, Employee>,
+  projectMap: Map<string, Project>
+): number {
+  let totalScore = 0
+  
+  // Process each assignment
+  for (const assignment of assignments) {
+    const employee = employeeMap.get(assignment.employeeId)
+    const project = projectMap.get(assignment.projectId)
+    
+    // Skip if employee or project not found, or no required skills
+    if (!employee || !project || !project.requiredSkills || project.requiredSkills.length === 0) {
+      continue
+    }
+    
+    // Calculate score for this assignment
+    for (const skill of project.requiredSkills) {
+      const proficiency = employee.skills[skill]
+      if (proficiency) {
+        totalScore += PROFICIENCY_SCORES[proficiency]
+      }
+    }
+  }
+  
+  return totalScore
+}
+
+/**
+ * Pre-compute skill scores for a single employee-project pair.
+ * Useful for caching in optimization algorithms.
+ * 
+ * @param employee - Employee to evaluate
+ * @param project - Project to match against
+ * @returns Skill score for this pairing
+ */
+export function getEmployeeProjectSkillScore(
+  employee: Employee,
+  project: Project
+): number {
+  if (!project.requiredSkills) return 0
+  
+  let score = 0
+  for (const skill of project.requiredSkills) {
+    const proficiency = employee.skills[skill]
+    if (proficiency) {
+      score += PROFICIENCY_SCORES[proficiency]
+    }
+  }
+  
+  return score
+}
+
+/**
+ * Create a skill score matrix for all employee-project combinations.
+ * Useful for pre-computation in optimization algorithms.
+ * 
+ * @param employees - Array of employees
+ * @param projects - Array of projects
+ * @returns 2D map of [employeeId][projectId] -> skill score
+ */
+export function createSkillScoreMatrix(
+  employees: Employee[],
+  projects: Project[]
+): Map<string, Map<string, number>> {
+  const matrix = new Map<string, Map<string, number>>()
+  
+  for (const employee of employees) {
+    const projectScores = new Map<string, number>()
+    
+    for (const project of projects) {
+      const score = getEmployeeProjectSkillScore(employee, project)
+      if (score > 0) {
+        projectScores.set(project.id, score)
+      }
+    }
+    
+    if (projectScores.size > 0) {
+      matrix.set(employee.id, projectScores)
+    }
+  }
+  
+  return matrix
 }

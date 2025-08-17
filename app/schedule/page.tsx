@@ -1,14 +1,25 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { useState, useEffect } from 'react'
 import { GanttChart } from '@/components/features/gantt/GanttChart'
 import { HoursGrid } from '@/components/features/hours/HoursGrid'
 import { SkillsMatrix } from '@/components/features/skills/SkillsMatrix'
 
-function ScheduleContent() {
-  const searchParams = useSearchParams()
-  const view = searchParams.get('view') || 'gantt'
+export default function SchedulePage() {
+  const [view, setView] = useState<string>('gantt')
+  
+  useEffect(() => {
+    // Get view from URL hash instead of search params for static export
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1)
+      const params = new URLSearchParams(hash)
+      setView(params.get('view') || 'gantt')
+    }
+    
+    handleHashChange()
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -16,13 +27,5 @@ function ScheduleContent() {
       {view === 'hours' && <HoursGrid />}
       {view === 'skills' && <SkillsMatrix />}
     </div>
-  )
-}
-
-export default function SchedulePage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ScheduleContent />
-    </Suspense>
   )
 }

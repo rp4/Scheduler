@@ -49,7 +49,7 @@ export const useScheduleStore = create<ScheduleState>()(
         
         return set(() => ({
           ...data,
-          teams: ['All Teams', ...Array.from(new Set(data.employees.map(e => e.team).filter(Boolean)))],
+          teams: ['All Teams', ...Array.from(new Set(data.employees.map(e => e.team).filter((t): t is string => Boolean(t))))],
         }))
       },
 

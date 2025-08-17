@@ -86,6 +86,22 @@ export function SkillsMatrix() {
 
   return (
     <div>
+      <style jsx>{`
+        .skills-table-container::-webkit-scrollbar {
+          height: 8px;
+        }
+        .skills-table-container::-webkit-scrollbar-track {
+          background: #f3f4f6;
+          border-radius: 4px;
+        }
+        .skills-table-container::-webkit-scrollbar-thumb {
+          background: #9ca3af;
+          border-radius: 4px;
+        }
+        .skills-table-container::-webkit-scrollbar-thumb:hover {
+          background: #6b7280;
+        }
+      `}</style>
       {/* Controls */}
       <div className="flex gap-4 mb-6">
         <div className="flex-1 relative">
@@ -121,8 +137,15 @@ export function SkillsMatrix() {
       </div>
 
       {/* Matrix */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+      <div 
+        className="skills-table-container overflow-x-auto overflow-y-visible border rounded-lg shadow-sm"
+        style={{ 
+          maxWidth: '100%',
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#9ca3af #f3f4f6'
+        }}
+      >
+        <table className="border-collapse" style={{ minWidth: 'max-content' }}>
           <thead>
             <tr className="bg-gray-50">
               <th className="text-left p-3 border border-gray-200 font-semibold sticky left-0 bg-gray-50 z-10">

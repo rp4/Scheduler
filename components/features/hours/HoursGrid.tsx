@@ -140,10 +140,7 @@ export function HoursGrid() {
     return groups
   }, [weeks])
   
-  // Determine which weeks to show (show all weeks in the 3-year range)
-  const [visibleWeekRange, setVisibleWeekRange] = useState<{start: number, end: number}>({ start: 0, end: weeks.length })
-  
-  // Auto-detect weeks with data and adjust visible range
+  // Auto-detect weeks with data
   useMemo(() => {
     if (assignments.length > 0) {
       // Find the earliest and latest weeks with assignments
@@ -154,8 +151,6 @@ export function HoursGrid() {
       })).filter(w => weeksWithData.includes(w.week))
       
       if (weekIndices.length > 0) {
-        const minIndex = Math.max(0, Math.min(...weekIndices.map(w => w.index)) - 2)
-        const maxIndex = Math.min(weeks.length - 1, Math.max(...weekIndices.map(w => w.index)) + 2)
         // For now, still show all weeks but this helps us understand where the data is
       }
     }
@@ -431,7 +426,7 @@ export function HoursGrid() {
                           </span>
                         </td>
                         <td className="p-2 border border-gray-200"></td>
-                        {weeks.map((week, weekIndex) => {
+                        {weeks.map((week) => {
                           const assignment = getOrCreateAssignment(employee.id, project.id, week)
                           const isInRange = isWeekInProjectRange(week, project)
                           

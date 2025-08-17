@@ -26,6 +26,8 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
     employees: state.employees,
     projects: state.projects,
     assignments: state.assignments,
+    skills: state.skills || [],
+    teams: state.teams || [],
   }))
 
   const handleOptimize = async () => {
