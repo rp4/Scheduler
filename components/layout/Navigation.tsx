@@ -1,9 +1,9 @@
 'use client'
 
-import Link from 'next/link'
-import { useSearchParams, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { Calendar, Clock, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useState, useEffect } from 'react'
 
 const tabs = [
   { id: 'gantt', label: 'Gantt Chart', icon: Calendar },
@@ -13,11 +13,28 @@ const tabs = [
 
 export function Navigation() {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const currentView = searchParams.get('view') || 'gantt'
+  const [currentView, setCurrentView] = useState('gantt')
+  
+  useEffect(() => {
+    // Get view from URL hash for static export
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1)
+      const params = new URLSearchParams(hash)
+      setCurrentView(params.get('view') || 'gantt')
+    }
+    
+    handleHashChange()
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
 
   // Only show navigation on schedule page
   if (!pathname.includes('/schedule')) return null
+
+  const handleTabClick = (tabId: string) => {
+    // Update the hash without causing a page reload
+    window.location.hash = `view=${tabId}`
+  }
 
   return (
     <div className="bg-white border-b border-gray-200">
@@ -28,9 +45,9 @@ export function Navigation() {
             const isActive = currentView === tab.id
             
             return (
-              <Link
+              <button
                 key={tab.id}
-                href={`/schedule?view=${tab.id}`}
+                onClick={() => handleTabClick(tab.id)}
                 className={cn(
                   'flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2',
                   isActive
@@ -40,7 +57,7 @@ export function Navigation() {
               >
                 <Icon className="w-4 h-4" />
                 {tab.label}
-              </Link>
+              </button>
             )
           })}
         </nav>

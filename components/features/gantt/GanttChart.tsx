@@ -7,7 +7,7 @@ import { ZoomIn, ZoomOut, Calendar } from 'lucide-react'
 import { startOfYear, endOfYear, addYears } from 'date-fns'
 import "gantt-task-react/dist/index.css"
 
-type GanttViewMode = 'day' | 'week' | 'month' | 'quarter'
+type GanttViewMode = 'day' | 'week' | 'month' | 'year'
 
 export function GanttChart() {
   const projects = useScheduleStore((state) => state.projects)
@@ -100,15 +100,15 @@ export function GanttChart() {
         return ViewMode.Week
       case 'month':
         return ViewMode.Month
-      case 'quarter':
-        return ViewMode.QuarterYear
+      case 'year':
+        return ViewMode.Year
       default:
         return ViewMode.Week
     }
   }
   
   const handleZoomIn = () => {
-    const modes: GanttViewMode[] = ['day', 'week', 'month', 'quarter']
+    const modes: GanttViewMode[] = ['day', 'week', 'month', 'year']
     const currentIndex = modes.indexOf(viewMode)
     if (currentIndex > 0) {
       setViewMode(modes[currentIndex - 1])
@@ -116,7 +116,7 @@ export function GanttChart() {
   }
   
   const handleZoomOut = () => {
-    const modes: GanttViewMode[] = ['day', 'week', 'month', 'quarter']
+    const modes: GanttViewMode[] = ['day', 'week', 'month', 'year']
     const currentIndex = modes.indexOf(viewMode)
     if (currentIndex < modes.length - 1) {
       setViewMode(modes[currentIndex + 1])
@@ -159,7 +159,7 @@ export function GanttChart() {
         </button>
         <button
           onClick={handleZoomOut}
-          disabled={viewMode === 'quarter'}
+          disabled={viewMode === 'year'}
           className="p-2 bg-white hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="Zoom Out"
         >

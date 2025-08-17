@@ -22,7 +22,8 @@ export function Header() {
     projects,
     assignments,
     skills,
-  }), [employees, projects, assignments, skills])
+    teams,
+  }), [employees, projects, assignments, skills, teams])
 
   const handleExport = async () => {
     try {

@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
-import { ScheduleData, Employee, Project, Assignment, ProficiencyLevel } from '@/types/schedule'
-import { generateId, parseDate, getCurrentWeek } from '@/lib/utils'
+import { ScheduleData, Assignment, ProficiencyLevel } from '@/types/schedule'
+import { generateId, parseDate } from '@/lib/utils'
 import { format, parse, isValid, startOfWeek } from 'date-fns'
 
 // Function to normalize date to yyyy-MM-dd format (Monday of the week)
@@ -142,7 +142,7 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
     // Log first few rows for debugging
     if (sheet.length > 0) {
       console.log('  Sample assignment row:', sheet[0])
-      console.log('  Assignment column headers:', Object.keys(sheet[0]))
+      console.log('  Assignment column headers:', Object.keys(sheet[0] as object))
     }
     
     // Check if this is pivot-style format (columns are dates)
@@ -161,12 +161,30 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
       result.assignments = []
       
       sheet.forEach((row: any, rowIndex: number) => {
-        const employeeId = row.Employee || row['Employee'] || row['Employee ID'] || ''
-        const projectId = row.Project || row['Project'] || row['Project ID'] || ''
+        const employeeIdOrName = row.Employee || row['Employee'] || row['Employee ID'] || ''
+        const projectIdOrName = row.Project || row['Project'] || row['Project ID'] || ''
         
-        if (!employeeId || !projectId) {
+        if (!employeeIdOrName || !projectIdOrName) {
           console.log(`  ⚠️ Skipping row ${rowIndex + 1}: missing employee or project`)
           return
+        }
+        
+        // Try to find employee by ID first, then by name
+        let employeeId = employeeIdOrName
+        const employeeById = result.employees.find(e => e.id === employeeIdOrName)
+        const employeeByName = result.employees.find(e => e.name === employeeIdOrName)
+        
+        if (!employeeById && employeeByName) {
+          employeeId = employeeByName.id
+        }
+        
+        // Try to find project by ID first, then by name
+        let projectId = projectIdOrName
+        const projectById = result.projects.find(p => p.id === projectIdOrName)
+        const projectByName = result.projects.find(p => p.name === projectIdOrName)
+        
+        if (!projectById && projectByName) {
+          projectId = projectByName.id
         }
         
         // Process each date column
@@ -212,10 +230,31 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
         const rawHours = row.Hours || row['Hours'] || row.hours || 0
         const parsedHours = typeof rawHours === 'string' ? parseFloat(rawHours) || 0 : Number(rawHours) || 0
         
+        const employeeIdOrName = row['Employee ID'] || row.Employee || row['Employee'] || row['employee'] || ''
+        const projectIdOrName = row['Project ID'] || row.Project || row['Project'] || row['project'] || ''
+        
+        // Try to find employee by ID first, then by name
+        let employeeId = employeeIdOrName
+        const employeeById = result.employees.find(e => e.id === employeeIdOrName)
+        const employeeByName = result.employees.find(e => e.name === employeeIdOrName)
+        
+        if (!employeeById && employeeByName) {
+          employeeId = employeeByName.id
+        }
+        
+        // Try to find project by ID first, then by name
+        let projectId = projectIdOrName
+        const projectById = result.projects.find(p => p.id === projectIdOrName)
+        const projectByName = result.projects.find(p => p.name === projectIdOrName)
+        
+        if (!projectById && projectByName) {
+          projectId = projectByName.id
+        }
+        
         const assignment: Assignment = {
           id: generateId(),
-          employeeId: row['Employee ID'] || row.Employee || row['Employee'] || row['employee'] || '',
-          projectId: row['Project ID'] || row.Project || row['Project'] || row['project'] || '',
+          employeeId: employeeId,
+          projectId: projectId,
           hours: parsedHours,
           week: week,  // Keep for backwards compatibility
           date: date   // New: Store full date in yyyy-MM-dd format
