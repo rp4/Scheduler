@@ -4,7 +4,7 @@ import React from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Users, Briefcase, ChevronDown, ChevronRight, Plus, Calendar } from 'lucide-react'
-import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, isWithinInterval, getMonth, getYear, addYears } from 'date-fns'
+import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, isWithinInterval, getMonth, getYear } from 'date-fns'
 import { generateId } from '@/lib/utils'
 import { Project } from '@/types/schedule'
 
@@ -20,6 +20,7 @@ export function HoursGrid() {
   const projects = useScheduleStore((state) => state.projects)
   const assignments = useScheduleStore((state) => state.assignments)
   const selectedTeam = useScheduleStore((state) => state.selectedTeam)
+  const dateRangeFilter = useScheduleStore((state) => state.dateRange)
   const updateAssignment = useScheduleStore((state) => state.updateAssignment)
   const addAssignment = useScheduleStore((state) => state.addAssignment)
   const removeAssignment = useScheduleStore((state) => state.removeAssignment)
@@ -35,14 +36,48 @@ export function HoursGrid() {
     return format(monday, 'yyyy-MM-dd')
   }
 
-  // Generate weeks for 3 years (last year, current year, next year)
+  // Generate weeks based on date range filter or project dates
   const weeks = useMemo(() => {
-    const now = new Date()
-    // Same logic as Gantt chart: show from start of last year to end of next year
-    const rangeStart = startOfYear(addYears(now, -1))
-    const rangeEnd = endOfYear(addYears(now, 1))
-    const weekList: Date[] = []
+    let rangeStart: Date
+    let rangeEnd: Date
     
+    if (dateRangeFilter) {
+      // Ensure dates are Date objects (they might be strings from localStorage)
+      const start = dateRangeFilter.startDate instanceof Date 
+        ? dateRangeFilter.startDate 
+        : new Date(dateRangeFilter.startDate)
+      const end = dateRangeFilter.endDate instanceof Date
+        ? dateRangeFilter.endDate
+        : new Date(dateRangeFilter.endDate)
+      rangeStart = startOfWeek(start, { weekStartsOn: 1 })
+      rangeEnd = endOfWeek(end, { weekStartsOn: 1 })
+    } else if (projects.length > 0) {
+      // Use actual project dates for default range
+      let earliestStart = new Date(projects[0].startDate)
+      let latestEnd = new Date(projects[0].endDate)
+      
+      projects.forEach(project => {
+        const projectStart = new Date(project.startDate)
+        const projectEnd = new Date(project.endDate)
+        
+        if (projectStart < earliestStart) {
+          earliestStart = projectStart
+        }
+        if (projectEnd > latestEnd) {
+          latestEnd = projectEnd
+        }
+      })
+      
+      rangeStart = startOfWeek(earliestStart, { weekStartsOn: 1 })
+      rangeEnd = endOfWeek(latestEnd, { weekStartsOn: 1 })
+    } else {
+      // Fallback to current year if no projects
+      const now = new Date()
+      rangeStart = startOfYear(now)
+      rangeEnd = endOfYear(now)
+    }
+    
+    const weekList: Date[] = []
     let currentWeek = startOfWeek(rangeStart, { weekStartsOn: 1 }) // Start on Monday
     while (currentWeek <= rangeEnd) {
       weekList.push(currentWeek)
@@ -50,7 +85,7 @@ export function HoursGrid() {
     }
     
     return weekList
-  }, [])
+  }, [dateRangeFilter, projects])
   
   // Find the index of the current week
   const currentWeekIndex = useMemo(() => {

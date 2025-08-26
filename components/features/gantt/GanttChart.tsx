@@ -3,12 +3,11 @@
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { Gantt, Task, ViewMode } from 'gantt-task-react'
-import { isWithinInterval } from 'date-fns'
 import { EditProjectForm } from './EditProjectForm'
 import type { Project } from '@/types/schedule'
 import "gantt-task-react/dist/index.css"
 
-type GanttViewMode = 'day' | 'week' | 'month' | 'year'
+type GanttViewMode = 'week' | 'month' | 'year'
 
 export function GanttChart() {
   const projects = useScheduleStore((state) => state.projects)
@@ -23,8 +22,49 @@ export function GanttChart() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const ganttRef = useRef<any>(null)
   
-  // Get the current date for view centering
-  const currentDate = useMemo(() => new Date(), [])
+  // Get the view date - use filtered range start date or current date
+  const viewDate = useMemo(() => {
+    if (dateRangeFilter) {
+      const filterStart = dateRangeFilter.startDate instanceof Date 
+        ? dateRangeFilter.startDate 
+        : new Date(dateRangeFilter.startDate)
+      return filterStart
+    }
+    return new Date()
+  }, [dateRangeFilter])
+  
+  // Calculate optimal column width based on date range span
+  const columnWidth = useMemo(() => {
+    if (!dateRangeFilter) {
+      // Default widths
+      return viewMode === 'week' ? 60 : viewMode === 'month' ? 120 : 200
+    }
+    
+    const filterStart = dateRangeFilter.startDate instanceof Date 
+      ? dateRangeFilter.startDate 
+      : new Date(dateRangeFilter.startDate)
+    const filterEnd = dateRangeFilter.endDate instanceof Date
+      ? dateRangeFilter.endDate
+      : new Date(dateRangeFilter.endDate)
+    
+    // Calculate span in days
+    const spanInDays = Math.ceil((filterEnd.getTime() - filterStart.getTime()) / (1000 * 60 * 60 * 24))
+    
+    // Adjust column width to fit the view better
+    if (viewMode === 'week') {
+      // For week view
+      if (spanInDays < 60) return 100
+      if (spanInDays < 180) return 80
+      return 60
+    } else if (viewMode === 'month') {
+      // For month view
+      if (spanInDays < 365) return 150
+      return 120
+    } else {
+      // Year view
+      return 200
+    }
+  }, [viewMode, dateRangeFilter])
   
   // Listen for zoom changes from Navigation
   useEffect(() => {
@@ -81,26 +121,23 @@ export function GanttChart() {
         const projectStart = new Date(project.startDate)
         const projectEnd = new Date(project.endDate)
         
-        // Show project if it overlaps with the date range filter
-        return (
-          isWithinInterval(projectStart, { start: filterStart, end: filterEnd }) ||
-          isWithinInterval(projectEnd, { start: filterStart, end: filterEnd }) ||
-          (projectStart <= filterStart && projectEnd >= filterEnd)
-        )
+        // Only show projects that have some portion within the date range
+        // Hide projects that are completely outside the range
+        return !(projectEnd < filterStart || projectStart > filterEnd)
       })
     }
     
     return filtered
   }, [projects, assignments, employees, selectedTeam, dateRangeFilter])
   
-  // Convert projects to Gantt tasks format
+  // Convert projects to Gantt tasks format with boundary markers
   const tasks: Task[] = useMemo(() => {
     // Ensure we have at least one task for the chart to render properly
     if (filteredProjects.length === 0) {
       return []
     }
     
-    return filteredProjects.map(project => ({
+    const projectTasks = filteredProjects.map(project => ({
       start: new Date(project.startDate),
       end: new Date(project.endDate),
       name: project.name,
@@ -115,10 +152,61 @@ export function GanttChart() {
         progressSelectedColor: 'transparent' // Hide progress bar when selected
       }
     }))
-  }, [filteredProjects])
+    
+    // Add invisible boundary markers if date range filter is active
+    if (dateRangeFilter) {
+      const filterStart = dateRangeFilter.startDate instanceof Date 
+        ? dateRangeFilter.startDate 
+        : new Date(dateRangeFilter.startDate)
+      const filterEnd = dateRangeFilter.endDate instanceof Date
+        ? dateRangeFilter.endDate
+        : new Date(dateRangeFilter.endDate)
+      
+      // Add boundary markers to constrain the view
+      const boundaryTasks: Task[] = [
+        {
+          start: filterStart,
+          end: filterStart,
+          name: '',
+          id: '__boundary_start__',
+          type: 'task' as const,
+          progress: 0,
+          isDisabled: true,
+          styles: {
+            backgroundColor: 'transparent',
+            backgroundSelectedColor: 'transparent',
+            progressColor: 'transparent',
+            progressSelectedColor: 'transparent'
+          }
+        },
+        {
+          start: filterEnd,
+          end: filterEnd,
+          name: '',
+          id: '__boundary_end__',
+          type: 'task' as const,
+          progress: 0,
+          isDisabled: true,
+          styles: {
+            backgroundColor: 'transparent',
+            backgroundSelectedColor: 'transparent',
+            progressColor: 'transparent',
+            progressSelectedColor: 'transparent'
+          }
+        }
+      ]
+      
+      return [...boundaryTasks, ...projectTasks]
+    }
+    
+    return projectTasks
+  }, [filteredProjects, dateRangeFilter])
   
   // Handle date changes from drag and drop
   const handleDateChange = (task: Task) => {
+    // Ignore boundary markers
+    if (task.id.startsWith('__boundary_')) return
+    
     console.log(`Date changed for ${task.name}: ${task.start} to ${task.end}`)
     updateProject(task.id, {
       startDate: task.start,
@@ -128,6 +216,9 @@ export function GanttChart() {
   
   // Handle double click to edit project
   const handleDoubleClick = (task: Task) => {
+    // Ignore boundary markers
+    if (task.id.startsWith('__boundary_')) return
+    
     const project = filteredProjects.find(p => p.id === task.id)
     if (project) {
       setEditingProject(project)
@@ -145,8 +236,6 @@ export function GanttChart() {
   // Convert view mode to gantt-task-react format
   const getGanttViewMode = (): ViewMode => {
     switch (viewMode) {
-      case 'day':
-        return ViewMode.Day
       case 'week':
         return ViewMode.Week
       case 'month':
@@ -158,7 +247,7 @@ export function GanttChart() {
     }
   }
   
-  // Auto-scroll to current week on mount
+  // Auto-scroll to view date on mount or when date range changes
   useEffect(() => {
     if (ganttRef.current && tasks.length > 0) {
       // Small delay to ensure the chart is rendered
@@ -166,11 +255,53 @@ export function GanttChart() {
         const ganttSvg = document.querySelector('.gantt-container svg.gantt')
         if (ganttSvg) {
           // The library should auto-scroll to viewDate
-          console.log('Gantt chart initialized with current date view')
+          console.log('Gantt chart initialized with view date')
         }
       }, 100)
     }
-  }, [tasks.length])
+  }, [tasks.length, viewDate])
+  
+  // Replace week numbers with dates when in week view
+  useEffect(() => {
+    if (viewMode === 'week' && ganttRef.current) {
+      const observer = new MutationObserver(() => {
+        // Find all text elements that contain "W" followed by numbers (week labels)
+        const weekLabels = document.querySelectorAll('.gantt-container text')
+        weekLabels.forEach(label => {
+          const text = label.textContent || ''
+          // Match W followed by 1-2 digits (week number)
+          if (/^W\d{1,2}$/.test(text)) {
+            // Extract week number
+            const weekNum = parseInt(text.substring(1))
+            // Calculate the date for this week number
+            // This is approximate - ideally we'd calculate the actual Monday
+            const yearStart = new Date(new Date().getFullYear(), 0, 1)
+            const daysToAdd = (weekNum - 1) * 7
+            const weekDate = new Date(yearStart)
+            weekDate.setDate(yearStart.getDate() + daysToAdd)
+            // Find the Monday of that week
+            const dayOfWeek = weekDate.getDay()
+            const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+            weekDate.setDate(weekDate.getDate() + daysToMonday)
+            // Format as day number with suffix
+            const day = weekDate.getDate()
+            const suffix = day === 1 || day === 21 || day === 31 ? 'st' :
+                         day === 2 || day === 22 ? 'nd' :
+                         day === 3 || day === 23 ? 'rd' : 'th'
+            label.textContent = `${day}${suffix}`
+          }
+        })
+      })
+      
+      observer.observe(ganttRef.current, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      })
+      
+      return () => observer.disconnect()
+    }
+  }, [viewMode, tasks])
   
   if (tasks.length === 0) {
     return (
@@ -187,13 +318,13 @@ export function GanttChart() {
         <Gantt
           tasks={tasks}
           viewMode={getGanttViewMode()}
-          viewDate={currentDate}
+          viewDate={viewDate}
           onDateChange={handleDateChange}
           onProgressChange={() => {}} // Disable progress changes
           onDoubleClick={handleDoubleClick} // Enable double click for editing
           onClick={() => {}} // Disable click
           listCellWidth="" // Hide the task list
-          columnWidth={viewMode === 'day' ? 50 : viewMode === 'week' ? 60 : viewMode === 'month' ? 120 : 200}
+          columnWidth={columnWidth}
           ganttHeight={Math.max(400, tasks.length * 45 + 100)}
           fontSize="12px"
           rowHeight={40}
@@ -202,6 +333,7 @@ export function GanttChart() {
           // Ensure dragging is enabled
           handleWidth={8}
           timeStep={1000 * 60 * 60 * 24} // 1 day steps for dragging
+          locale="en-GB" // Use British locale for Monday-first weeks
         />
       </div>
       
