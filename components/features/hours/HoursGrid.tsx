@@ -3,7 +3,7 @@
 import React from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Users, Briefcase, ChevronDown, ChevronRight, Plus, Calendar } from 'lucide-react'
+import { Users, Briefcase, ChevronDown, ChevronRight, Plus, Calendar, ArrowRight } from 'lucide-react'
 import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, isWithinInterval, getMonth, getYear } from 'date-fns'
 import { generateId } from '@/lib/utils'
 import { Project } from '@/types/schedule'
@@ -286,6 +286,55 @@ export function HoursGrid() {
     return found
   }
 
+  // Copy hours to all remaining weeks in project range
+  const copyHoursToRight = (employeeId: string, projectId: string, fromWeekIndex: number, hours: number) => {
+    const project = filteredData.projects.find(p => p.id === projectId)
+    if (!project) return
+
+    // Handle Placeholder employee specially
+    if (employeeId === 'placeholder') {
+      for (let i = fromWeekIndex + 1; i < weeks.length; i++) {
+        const week = weeks[i]
+        if (isWeekInProjectRange(week, project)) {
+          const dateStr = formatWeekToDate(week)
+          const weekStr = formatWeek(week)
+          
+          // Check if assignment already exists
+          const existing = filteredData.assignments.find(a => 
+            a.employeeId === 'Placeholder' && 
+            (a.projectId === projectId || a.projectId === project.name) &&
+            (a.date === dateStr || (!a.date && a.week === weekStr))
+          )
+          
+          if (existing) {
+            if (hours === 0) {
+              removeAssignment(existing.id)
+            } else {
+              updateAssignment(existing.id, { hours, date: dateStr })
+            }
+          } else if (hours > 0) {
+            addAssignment({
+              id: generateId(),
+              employeeId: 'Placeholder',
+              projectId: projectId,
+              week: weekStr,
+              date: dateStr,
+              hours
+            })
+          }
+        }
+      }
+    } else {
+      // Start from the next week after the current one
+      for (let i = fromWeekIndex + 1; i < weeks.length; i++) {
+        const week = weeks[i]
+        if (isWeekInProjectRange(week, project)) {
+          handleHoursChange(employeeId, projectId, week, hours)
+        }
+      }
+    }
+  }
+
   const handleHoursChange = (employeeId: string, projectId: string, weekDate: Date, hours: number) => {
     const existing = getOrCreateAssignment(employeeId, projectId, weekDate)
     const dateStr = formatWeekToDate(weekDate)
@@ -461,27 +510,40 @@ export function HoursGrid() {
                           </span>
                         </td>
                         <td className="p-2 border border-gray-200"></td>
-                        {weeks.map((week) => {
+                        {weeks.map((week, weekIndex) => {
                           const assignment = getOrCreateAssignment(employee.id, project.id, week)
                           const isInRange = isWeekInProjectRange(week, project)
+                          const currentHours = assignment?.hours || 0
                           
-                          // Debug specific week where we expect data
+                          // Check if there are more weeks in range to the right
+                          const hasWeeksToRight = weeks.slice(weekIndex + 1).some(w => isWeekInProjectRange(w, project))
                           
                           return (
                             <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center ${isInRange ? 'bg-white' : 'bg-gray-50'}`}>
                               {isInRange ? (
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="168"
-                                  value={assignment?.hours || ''}
-                                  onChange={(e) => {
-                                    const hours = parseInt(e.target.value) || 0
-                                    handleHoursChange(employee.id, project.id, week, hours)
-                                  }}
-                                  placeholder="-"
-                                  className="w-14 px-1 py-0.5 text-center border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                />
+                                <div className="flex items-center gap-0.5">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="168"
+                                    value={assignment?.hours || ''}
+                                    onChange={(e) => {
+                                      const hours = parseInt(e.target.value) || 0
+                                      handleHoursChange(employee.id, project.id, week, hours)
+                                    }}
+                                    placeholder="-"
+                                    className="w-12 px-1 py-0.5 text-center border border-gray-300 rounded-l text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  />
+                                  {hasWeeksToRight && (
+                                    <button
+                                      onClick={() => copyHoursToRight(employee.id, project.id, weekIndex, currentHours)}
+                                      className="p-0.5 border border-l-0 border-gray-300 rounded-r bg-gray-50 hover:bg-blue-100 transition-colors"
+                                      title="Copy value to all weeks to the right"
+                                    >
+                                      <ArrowRight className="w-3 h-3 text-gray-600" />
+                                    </button>
+                                  )}
+                                </div>
                               ) : (
                                 <span className="text-gray-400 text-sm">-</span>
                               )}
@@ -718,7 +780,7 @@ export function HoursGrid() {
                             <span className="text-xs text-gray-500">({employee.team})</span>
                           </span>
                         </td>
-                        {weeks.map((week) => {
+                        {weeks.map((week, weekIndex) => {
                           const assignment = employee.id === 'placeholder' 
                             ? filteredData.assignments.find(a => 
                                 a.employeeId === 'Placeholder' && 
@@ -727,42 +789,57 @@ export function HoursGrid() {
                               )
                             : getOrCreateAssignment(employee.id, project.id, week)
                           const isInRange = isWeekInProjectRange(week, project)
+                          const currentHours = assignment?.hours || 0
+                          
+                          // Check if there are more weeks in range to the right
+                          const hasWeeksToRight = weeks.slice(weekIndex + 1).some(w => isWeekInProjectRange(w, project))
                           
                           return (
                             <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center ${isInRange ? 'bg-white' : 'bg-gray-50'}`}>
                               {isInRange ? (
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="168"
-                                  value={assignment?.hours || ''}
-                                  onChange={(e) => {
-                                    const hours = parseInt(e.target.value) || 0
-                                    if (employee.id === 'placeholder') {
-                                      // Handle Placeholder assignments
-                                      if (assignment) {
-                                        if (hours === 0) {
-                                          removeAssignment(assignment.id)
-                                        } else {
-                                          updateAssignment(assignment.id, { hours, date: formatWeekToDate(week) })
+                                <div className="flex items-center gap-0.5">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="168"
+                                    value={assignment?.hours || ''}
+                                    onChange={(e) => {
+                                      const hours = parseInt(e.target.value) || 0
+                                      if (employee.id === 'placeholder') {
+                                        // Handle Placeholder assignments
+                                        if (assignment) {
+                                          if (hours === 0) {
+                                            removeAssignment(assignment.id)
+                                          } else {
+                                            updateAssignment(assignment.id, { hours, date: formatWeekToDate(week) })
+                                          }
+                                        } else if (hours > 0) {
+                                          addAssignment({
+                                            id: generateId(),
+                                            employeeId: 'Placeholder',
+                                            projectId: project.id,
+                                            week: formatWeek(week),
+                                            date: formatWeekToDate(week),
+                                            hours
+                                          })
                                         }
-                                      } else if (hours > 0) {
-                                        addAssignment({
-                                          id: generateId(),
-                                          employeeId: 'Placeholder',
-                                          projectId: project.id,
-                                          week: formatWeek(week),
-                                          date: formatWeekToDate(week),
-                                          hours
-                                        })
+                                      } else {
+                                        handleHoursChange(employee.id, project.id, week, hours)
                                       }
-                                    } else {
-                                      handleHoursChange(employee.id, project.id, week, hours)
-                                    }
-                                  }}
-                                  placeholder="-"
-                                  className="w-14 px-1 py-0.5 text-center border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                />
+                                    }}
+                                    placeholder="-"
+                                    className="w-12 px-1 py-0.5 text-center border border-gray-300 rounded-l text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  />
+                                  {hasWeeksToRight && (
+                                    <button
+                                      onClick={() => copyHoursToRight(employee.id, project.id, weekIndex, currentHours)}
+                                      className="p-0.5 border border-l-0 border-gray-300 rounded-r bg-gray-50 hover:bg-blue-100 transition-colors"
+                                      title="Copy value to all weeks to the right"
+                                    >
+                                      <ArrowRight className="w-3 h-3 text-gray-600" />
+                                    </button>
+                                  )}
+                                </div>
                               ) : (
                                 <span className="text-gray-400 text-sm">-</span>
                               )}
