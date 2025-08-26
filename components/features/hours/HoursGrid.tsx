@@ -387,7 +387,7 @@ export function HoursGrid() {
               
               const isExpanded = expandedRows.has(employee.id)
               
-              // Get projects this employee is assigned to
+              // Get projects this employee is assigned to (including those with 0 hours)
               const employeeProjects = filteredData.projects.filter(project => {
                 const hasAssignment = filteredData.assignments.some(a => 
                   (a.employeeId === employee.id || a.employeeId === employee.name) && 
@@ -504,10 +504,39 @@ export function HoursGrid() {
                             className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                             onChange={(e) => {
                               if (e.target.value) {
-                                // Create initial assignment for first week
-                                handleHoursChange(employee.id, e.target.value, weeks[0], 0)
+                                const projectId = e.target.value
+                                // Find the first week in the project's date range
+                                const project = filteredData.projects.find(p => p.id === projectId)
+                                if (project) {
+                                  const projectWeeks = weeks.filter(w => isWeekInProjectRange(w, project))
+                                  if (projectWeeks.length > 0) {
+                                    // Create initial assignment with 0 hours for the first week in project range
+                                    // This ensures the assignment is created and the row will appear
+                                    const firstWeek = projectWeeks[0]
+                                    const dateStr = formatWeekToDate(firstWeek)
+                                    const weekStr = formatWeek(firstWeek)
+                                    
+                                    // Use the name if that's what's being used in assignments, otherwise use ID
+                                    const firstAssignment = filteredData.assignments[0]
+                                    const useNames = firstAssignment && 
+                                                     (firstAssignment.employeeId === employee?.name || 
+                                                      firstAssignment.projectId === project?.name)
+                                    
+                                    addAssignment({
+                                      id: generateId(),
+                                      employeeId: useNames ? (employee?.name || employee.id) : employee.id,
+                                      projectId: useNames ? (project?.name || projectId) : projectId,
+                                      week: weekStr,
+                                      date: dateStr,
+                                      hours: 0
+                                    })
+                                  }
+                                }
                                 setAddingToRow(null)
                                 // Keep row expanded to show the new project
+                                if (!expandedRows.has(employee.id)) {
+                                  toggleExpanded(employee.id)
+                                }
                               }
                             }}
                             onBlur={() => setAddingToRow(null)}
