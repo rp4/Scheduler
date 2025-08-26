@@ -519,9 +519,9 @@ export function HoursGrid() {
                           const hasWeeksToRight = weeks.slice(weekIndex + 1).some(w => isWeekInProjectRange(w, project))
                           
                           return (
-                            <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center ${isInRange ? 'bg-white' : 'bg-gray-50'}`}>
+                            <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center group ${isInRange ? 'bg-white' : 'bg-gray-50'}`}>
                               {isInRange ? (
-                                <div className="flex items-center gap-0.5">
+                                <div className="flex items-center gap-0.5 justify-center">
                                   <input
                                     type="number"
                                     min="0"
@@ -532,12 +532,12 @@ export function HoursGrid() {
                                       handleHoursChange(employee.id, project.id, week, hours)
                                     }}
                                     placeholder="-"
-                                    className="w-12 px-1 py-0.5 text-center border border-gray-300 rounded-l text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    className="w-12 px-1 py-0.5 text-center border border-gray-300 rounded-l text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 peer"
                                   />
                                   {hasWeeksToRight && (
                                     <button
                                       onClick={() => copyHoursToRight(employee.id, project.id, weekIndex, currentHours)}
-                                      className="p-0.5 border border-l-0 border-gray-300 rounded-r bg-gray-50 hover:bg-blue-100 transition-colors"
+                                      className="p-0.5 border border-l-0 border-gray-300 rounded-r bg-gray-50 hover:bg-blue-100 transition-all duration-200 opacity-0 group-hover:opacity-100 peer-focus:opacity-100 -ml-0.5"
                                       title="Copy value to all weeks to the right"
                                     >
                                       <ArrowRight className="w-3 h-3 text-gray-600" />
@@ -795,9 +795,9 @@ export function HoursGrid() {
                           const hasWeeksToRight = weeks.slice(weekIndex + 1).some(w => isWeekInProjectRange(w, project))
                           
                           return (
-                            <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center ${isInRange ? 'bg-white' : 'bg-gray-50'}`}>
+                            <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center group ${isInRange ? 'bg-white' : 'bg-gray-50'}`}>
                               {isInRange ? (
-                                <div className="flex items-center gap-0.5">
+                                <div className="flex items-center gap-0.5 justify-center">
                                   <input
                                     type="number"
                                     min="0"
@@ -828,12 +828,12 @@ export function HoursGrid() {
                                       }
                                     }}
                                     placeholder="-"
-                                    className="w-12 px-1 py-0.5 text-center border border-gray-300 rounded-l text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    className="w-12 px-1 py-0.5 text-center border border-gray-300 rounded-l text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 peer"
                                   />
                                   {hasWeeksToRight && (
                                     <button
                                       onClick={() => copyHoursToRight(employee.id, project.id, weekIndex, currentHours)}
-                                      className="p-0.5 border border-l-0 border-gray-300 rounded-r bg-gray-50 hover:bg-blue-100 transition-colors"
+                                      className="p-0.5 border border-l-0 border-gray-300 rounded-r bg-gray-50 hover:bg-blue-100 transition-all duration-200 opacity-0 group-hover:opacity-100 peer-focus:opacity-100 -ml-0.5"
                                       title="Copy value to all weeks to the right"
                                     >
                                       <ArrowRight className="w-3 h-3 text-gray-600" />
