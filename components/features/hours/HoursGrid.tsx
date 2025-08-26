@@ -639,13 +639,24 @@ export function HoursGrid() {
               
               const isExpanded = expandedRows.has(project.id)
               
-              // Get employees assigned to this project
-              const projectEmployees = filteredData.employees.filter(employee => 
+              // Get employees assigned to this project (including those with 0 hours and Placeholder)
+              const regularEmployees = filteredData.employees.filter(employee => 
                 filteredData.assignments.some(a => 
                   (a.employeeId === employee.id || a.employeeId === employee.name) && 
                   (a.projectId === project.id || a.projectId === project.name)
                 )
               )
+              
+              // Check if there are any Placeholder assignments for this project
+              const hasPlaceholder = filteredData.assignments.some(a => 
+                a.employeeId === 'Placeholder' && 
+                (a.projectId === project.id || a.projectId === project.name)
+              )
+              
+              // Create a virtual Placeholder employee if needed
+              const projectEmployees = hasPlaceholder 
+                ? [...regularEmployees, { id: 'placeholder', name: 'Placeholder', team: 'Unassigned', maxHours: 40, skills: {} }]
+                : regularEmployees
 
               return (
                 <React.Fragment key={project.id}>
@@ -693,7 +704,8 @@ export function HoursGrid() {
                   {/* Expandable employee rows for this project */}
                   {isExpanded && projectEmployees.map(employee => {
                     const employeeAssignments = filteredData.assignments.filter(
-                      a => (a.employeeId === employee.id || a.employeeId === employee.name) && 
+                      a => (a.employeeId === employee.id || a.employeeId === employee.name || 
+                           (employee.id === 'placeholder' && a.employeeId === 'Placeholder')) && 
                            (a.projectId === project.id || a.projectId === project.name)
                     )
 
@@ -707,7 +719,13 @@ export function HoursGrid() {
                           </span>
                         </td>
                         {weeks.map((week) => {
-                          const assignment = getOrCreateAssignment(employee.id, project.id, week)
+                          const assignment = employee.id === 'placeholder' 
+                            ? filteredData.assignments.find(a => 
+                                a.employeeId === 'Placeholder' && 
+                                (a.projectId === project.id || a.projectId === project.name) &&
+                                (a.date === formatWeekToDate(week) || (!a.date && a.week === formatWeek(week)))
+                              )
+                            : getOrCreateAssignment(employee.id, project.id, week)
                           const isInRange = isWeekInProjectRange(week, project)
                           
                           return (
@@ -720,7 +738,27 @@ export function HoursGrid() {
                                   value={assignment?.hours || ''}
                                   onChange={(e) => {
                                     const hours = parseInt(e.target.value) || 0
-                                    handleHoursChange(employee.id, project.id, week, hours)
+                                    if (employee.id === 'placeholder') {
+                                      // Handle Placeholder assignments
+                                      if (assignment) {
+                                        if (hours === 0) {
+                                          removeAssignment(assignment.id)
+                                        } else {
+                                          updateAssignment(assignment.id, { hours, date: formatWeekToDate(week) })
+                                        }
+                                      } else if (hours > 0) {
+                                        addAssignment({
+                                          id: generateId(),
+                                          employeeId: 'Placeholder',
+                                          projectId: project.id,
+                                          week: formatWeek(week),
+                                          date: formatWeekToDate(week),
+                                          hours
+                                        })
+                                      }
+                                    } else {
+                                      handleHoursChange(employee.id, project.id, week, hours)
+                                    }
                                   }}
                                   placeholder="-"
                                   className="w-14 px-1 py-0.5 text-center border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -747,24 +785,80 @@ export function HoursGrid() {
                             className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                             onChange={(e) => {
                               if (e.target.value) {
-                                // Create initial assignment for first week
-                                handleHoursChange(e.target.value, project.id, weeks[0], 0)
+                                const employeeId = e.target.value
+                                
+                                // Handle Placeholder employee
+                                if (employeeId === 'placeholder') {
+                                  // Create a placeholder assignment
+                                  const projectWeeks = weeks.filter(w => isWeekInProjectRange(w, project))
+                                  if (projectWeeks.length > 0) {
+                                    const firstWeek = projectWeeks[0]
+                                    const dateStr = formatWeekToDate(firstWeek)
+                                    const weekStr = formatWeek(firstWeek)
+                                    
+                                    addAssignment({
+                                      id: generateId(),
+                                      employeeId: 'Placeholder',
+                                      projectId: project.id,
+                                      week: weekStr,
+                                      date: dateStr,
+                                      hours: 0
+                                    })
+                                  }
+                                } else {
+                                  // Find the first week in the project's date range
+                                  const employee = filteredData.employees.find(e => e.id === employeeId)
+                                  const projectWeeks = weeks.filter(w => isWeekInProjectRange(w, project))
+                                  
+                                  if (projectWeeks.length > 0) {
+                                    // Create initial assignment with 0 hours for the first week in project range
+                                    const firstWeek = projectWeeks[0]
+                                    const dateStr = formatWeekToDate(firstWeek)
+                                    const weekStr = formatWeek(firstWeek)
+                                    
+                                    // Use the name if that's what's being used in assignments, otherwise use ID
+                                    const firstAssignment = filteredData.assignments[0]
+                                    const useNames = firstAssignment && 
+                                                     (firstAssignment.employeeId === employee?.name || 
+                                                      firstAssignment.projectId === project?.name)
+                                    
+                                    addAssignment({
+                                      id: generateId(),
+                                      employeeId: useNames ? (employee?.name || employeeId) : employeeId,
+                                      projectId: useNames ? (project?.name || project.id) : project.id,
+                                      week: weekStr,
+                                      date: dateStr,
+                                      hours: 0
+                                    })
+                                  }
+                                }
+                                
                                 setAddingToRow(null)
                                 // Keep row expanded to show the new employee
+                                if (!expandedRows.has(project.id)) {
+                                  toggleExpanded(project.id)
+                                }
                               }
                             }}
                             onBlur={() => setAddingToRow(null)}
                             autoFocus
                           >
                             <option value="">Select an employee...</option>
-                            {filteredData.employees
-                              .filter(e => !projectEmployees.some(pe => pe.id === e.id))
-                              .map(employee => (
-                                <option key={employee.id} value={employee.id}>
-                                  {employee.name} ({employee.team})
-                                </option>
-                              ))
-                            }
+                            {!hasPlaceholder && (
+                              <option value="placeholder" className="font-semibold text-blue-600">
+                                Placeholder (for optimization)
+                              </option>
+                            )}
+                            <optgroup label="Available Employees">
+                              {filteredData.employees
+                                .filter(e => !regularEmployees.some(pe => pe.id === e.id))
+                                .map(employee => (
+                                  <option key={employee.id} value={employee.id}>
+                                    {employee.name} ({employee.team})
+                                  </option>
+                                ))
+                              }
+                            </optgroup>
                           </select>
                         ) : (
                           <button
