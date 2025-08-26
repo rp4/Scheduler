@@ -18,13 +18,13 @@ export function LandingPageClient() {
     try {
       const data = await parseExcelFile(file)
       loadData(data)
-      // Redirect to schedule page
+      // Keep loading state during navigation
       window.location.href = '/schedule'
+      // Don't reset loading state here since we're navigating away
     } catch (error) {
       console.error('Failed to parse Excel file:', error)
       alert('Failed to parse Excel file. Please check the format.')
-    } finally {
-      setIsLoading(false)
+      setIsLoading(false) // Only reset on error
     }
   }
 
@@ -33,12 +33,12 @@ export function LandingPageClient() {
     try {
       const data = await loadSampleData()
       loadData(data)
-      // Redirect to schedule page
+      // Keep loading state during navigation
       window.location.href = '/schedule'
+      // Don't reset loading state here since we're navigating away
     } catch (error) {
       console.error('Failed to load sample data:', error)
-    } finally {
-      setIsLoading(false)
+      setIsLoading(false) // Only reset on error
     }
   }
 
@@ -53,17 +53,26 @@ export function LandingPageClient() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading schedule data...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="text-center bg-white rounded-xl shadow-xl p-8">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 mx-auto"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute inset-0 mx-auto"></div>
+          </div>
+          <h2 className="mt-6 text-xl font-semibold text-gray-800">Processing your file...</h2>
+          <p className="mt-2 text-gray-600">Loading schedule data and preparing workspace</p>
+          <div className="mt-4 flex items-center justify-center gap-1">
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100" style={{ backgroundImage: 'url(/background.gif)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundBlendMode: 'overlay' }}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -92,7 +101,7 @@ export function LandingPageClient() {
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <Download className="w-4 h-4" />
-                Download Sample Excel
+                Download Template
               </button>
             </div>
 

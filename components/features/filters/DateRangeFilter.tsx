@@ -114,16 +114,6 @@ export function DateRangeFilter() {
     }
   }
   
-  const handleReset = () => {
-    // Reset to default range instead of null
-    setDateRange({
-      startDate: defaultRange.start,
-      endDate: defaultRange.end
-    })
-    setStartDate(format(defaultRange.start, 'yyyy-MM-dd'))
-    setEndDate(format(defaultRange.end, 'yyyy-MM-dd'))
-  }
-  
   return (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-2">
@@ -156,16 +146,6 @@ export function DateRangeFilter() {
           className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
-      
-      {dateRange && (
-        <button
-          onClick={handleReset}
-          className="px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
-          title="Reset to full range"
-        >
-          Reset
-        </button>
-      )}
     </div>
   )
 }
