@@ -5,18 +5,15 @@ import Link from 'next/link'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { exportToExcel } from '@/lib/excel/exporter'
 import { OptimizationModal } from '@/components/features/optimization/OptimizationModal'
-import { DateRangeFilter } from '@/components/features/filters/DateRangeFilter'
 import { useState, useMemo } from 'react'
 
 export function Header() {
   const [showOptimization, setShowOptimization] = useState(false)
-  const selectedTeam = useScheduleStore((state) => state.selectedTeam)
-  const setSelectedTeam = useScheduleStore((state) => state.setSelectedTeam)
-  const teams = useScheduleStore((state) => state.teams)
   const employees = useScheduleStore((state) => state.employees)
   const projects = useScheduleStore((state) => state.projects)
   const assignments = useScheduleStore((state) => state.assignments)
   const skills = useScheduleStore((state) => state.skills)
+  const teams = useScheduleStore((state) => state.teams)
   
   const scheduleData = useMemo(() => ({
     employees,
@@ -54,28 +51,6 @@ export function Header() {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Date Range Filter */}
-              <DateRangeFilter />
-              
-              {/* Team Selector */}
-              <div className="flex items-center gap-2">
-                <label htmlFor="team-select" className="text-sm font-medium text-gray-700">
-                  Team:
-                </label>
-                <select
-                  id="team-select"
-                  value={selectedTeam}
-                  onChange={(e) => setSelectedTeam(e.target.value)}
-                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {teams.map((team) => (
-                    <option key={team} value={team}>
-                      {team}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Export Button */}
               <button
                 onClick={handleExport}
