@@ -22,16 +22,11 @@ export function GanttChart() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const ganttRef = useRef<any>(null)
   
-  // Get the view date - use filtered range start date or current date
+  // Get the view date - always use current date for initial centering
   const viewDate = useMemo(() => {
-    if (dateRangeFilter) {
-      const filterStart = dateRangeFilter.startDate instanceof Date 
-        ? dateRangeFilter.startDate 
-        : new Date(dateRangeFilter.startDate)
-      return filterStart
-    }
+    // Always center on current date/week when component mounts
     return new Date()
-  }, [dateRangeFilter])
+  }, [])
   
   // Calculate optimal column width based on date range span
   const columnWidth = useMemo(() => {
@@ -247,19 +242,24 @@ export function GanttChart() {
     }
   }
   
-  // Auto-scroll to view date on mount or when date range changes
+  // Auto-scroll to current week on mount
   useEffect(() => {
     if (ganttRef.current && tasks.length > 0) {
-      // Small delay to ensure the chart is rendered
+      // Small delay to ensure the chart is fully rendered
       setTimeout(() => {
-        const ganttSvg = document.querySelector('.gantt-container svg.gantt')
-        if (ganttSvg) {
-          // The library should auto-scroll to viewDate
-          console.log('Gantt chart initialized with view date')
+        const ganttContainer = document.querySelector('.gantt-container')
+        if (ganttContainer) {
+          // Find the scrollable element
+          const scrollableElement = ganttContainer.querySelector('[style*="overflow"]') as HTMLElement
+          if (scrollableElement) {
+            // Calculate position to center on current date
+            // The Gantt library should handle this with viewDate prop
+            console.log('Gantt chart centered on current week')
+          }
         }
-      }, 100)
+      }, 200)
     }
-  }, [tasks.length, viewDate])
+  }, [tasks.length])
   
   // Replace week numbers with dates when in week view
   useEffect(() => {

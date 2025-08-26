@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { exportToExcel } from '@/lib/excel/exporter'
 import { OptimizationModal } from '@/components/features/optimization/OptimizationModal'
+import { DateRangeFilter } from '@/components/features/filters/DateRangeFilter'
 import { useState, useMemo } from 'react'
 
 export function Header() {
@@ -40,9 +41,6 @@ export function Header() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/" className="text-2xl font-bold text-gray-900 hover:text-gray-700">
-                📊 Resource Scheduler
-              </Link>
               <Link 
                 href="/" 
                 className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
@@ -50,9 +48,15 @@ export function Header() {
               >
                 <Home className="w-5 h-5" />
               </Link>
+              <Link href="/" className="text-2xl font-bold text-gray-900 hover:text-gray-700">
+                Resource Scheduler
+              </Link>
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Date Range Filter */}
+              <DateRangeFilter />
+              
               {/* Team Selector */}
               <div className="flex items-center gap-2">
                 <label htmlFor="team-select" className="text-sm font-medium text-gray-700">

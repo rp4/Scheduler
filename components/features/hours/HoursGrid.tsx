@@ -3,7 +3,7 @@
 import React from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Users, Briefcase, ChevronDown, ChevronRight, Plus, Calendar, ArrowRight } from 'lucide-react'
+import { Users, Briefcase, ChevronDown, ChevronRight, Plus, ArrowRight } from 'lucide-react'
 import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, isWithinInterval, getMonth, getYear } from 'date-fns'
 import { generateId } from '@/lib/utils'
 import { Project } from '@/types/schedule'
@@ -1000,22 +1000,6 @@ export function HoursGrid() {
             <Briefcase className="w-4 h-4" />
             By Project
           </button>
-          {currentWeekIndex >= 0 && (
-            <button
-              onClick={() => {
-                if (tableRef.current) {
-                  const currentWeekElement = tableRef.current.querySelector(`th:nth-child(${currentWeekIndex + 3})`)
-                  if (currentWeekElement) {
-                    currentWeekElement.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
-                  }
-                }
-              }}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
-            >
-              <Calendar className="w-4 h-4" />
-              Current Week
-            </button>
-          )}
         </div>
         
         {/* Week Information */}
