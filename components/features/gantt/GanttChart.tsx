@@ -4,6 +4,8 @@ import { useScheduleStore } from '@/store/useScheduleStore'
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { Gantt, Task, ViewMode } from 'gantt-task-react'
 import { EditProjectForm } from './EditProjectForm'
+import { AddProjectForm } from './AddProjectForm'
+import { ZoomIn, ZoomOut, Calendar } from 'lucide-react'
 import type { Project } from '@/types/schedule'
 import "gantt-task-react/dist/index.css"
 
@@ -16,6 +18,7 @@ export function GanttChart() {
   const selectedTeam = useScheduleStore((state) => state.selectedTeam)
   const dateRangeFilter = useScheduleStore((state) => state.dateRange)
   const updateProject = useScheduleStore((state) => state.updateProject)
+  const addProject = useScheduleStore((state) => state.addProject)
   
   const [viewMode, setViewMode] = useState<GanttViewMode>('week')
   const [editingProject, setEditingProject] = useState<Project | null>(null)
@@ -61,15 +64,6 @@ export function GanttChart() {
     }
   }, [viewMode, dateRangeFilter])
   
-  // Listen for zoom changes from Navigation
-  useEffect(() => {
-    const handleZoomChange = (event: CustomEvent) => {
-      setViewMode(event.detail as GanttViewMode)
-    }
-    
-    window.addEventListener('gantt-zoom-change', handleZoomChange as EventListener)
-    return () => window.removeEventListener('gantt-zoom-change', handleZoomChange as EventListener)
-  }, [])
   
   // Filter projects by team and date range
   const filteredProjects = useMemo(() => {
@@ -242,6 +236,23 @@ export function GanttChart() {
     }
   }
   
+  // Handle zoom controls
+  const handleZoomIn = () => {
+    const modes: GanttViewMode[] = ['week', 'month', 'year']
+    const currentIndex = modes.indexOf(viewMode)
+    if (currentIndex > 0) {
+      setViewMode(modes[currentIndex - 1])
+    }
+  }
+  
+  const handleZoomOut = () => {
+    const modes: GanttViewMode[] = ['week', 'month', 'year']
+    const currentIndex = modes.indexOf(viewMode)
+    if (currentIndex < modes.length - 1) {
+      setViewMode(modes[currentIndex + 1])
+    }
+  }
+  
   // Auto-scroll to current week on mount
   useEffect(() => {
     if (ganttRef.current && tasks.length > 0) {
@@ -313,6 +324,40 @@ export function GanttChart() {
   
   return (
     <div>
+      {/* Controls Bar */}
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex gap-2">
+          {/* Add Project Button */}
+          <AddProjectForm onAddProject={addProject} />
+        </div>
+        
+        <div className="flex gap-2">
+          {/* Zoom Controls */}
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={handleZoomIn}
+              disabled={viewMode === 'week'}
+              className="p-2 bg-white hover:bg-gray-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Zoom In"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleZoomOut}
+              disabled={viewMode === 'year'}
+              className="p-2 bg-white hover:bg-gray-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Zoom Out"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-1 px-3 py-2 bg-white rounded">
+              <Calendar className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium capitalize">{viewMode}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       {/* Gantt Chart */}
       <div className="gantt-container" ref={ganttRef}>
         <Gantt
