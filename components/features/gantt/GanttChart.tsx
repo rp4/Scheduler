@@ -3,8 +3,9 @@
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { Gantt, Task, ViewMode } from 'gantt-task-react'
-import { ZoomIn, ZoomOut, Calendar } from 'lucide-react'
-import { startOfYear, endOfYear, addYears } from 'date-fns'
+import { isWithinInterval } from 'date-fns'
+import { EditProjectForm } from './EditProjectForm'
+import type { Project } from '@/types/schedule'
 import "gantt-task-react/dist/index.css"
 
 type GanttViewMode = 'day' | 'week' | 'month' | 'year'
@@ -14,49 +15,83 @@ export function GanttChart() {
   const assignments = useScheduleStore((state) => state.assignments)
   const employees = useScheduleStore((state) => state.employees)
   const selectedTeam = useScheduleStore((state) => state.selectedTeam)
+  const dateRangeFilter = useScheduleStore((state) => state.dateRange)
   const updateProject = useScheduleStore((state) => state.updateProject)
   
   const [viewMode, setViewMode] = useState<GanttViewMode>('week')
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
   const ganttRef = useRef<any>(null)
   
-  // Calculate 3-year date range
-  const dateRange = useMemo(() => {
-    const now = new Date()
-    return {
-      start: startOfYear(addYears(now, -1)),
-      end: endOfYear(addYears(now, 1)),
-      current: now
+  // Get the current date for view centering
+  const currentDate = useMemo(() => new Date(), [])
+  
+  // Listen for zoom changes from Navigation
+  useEffect(() => {
+    const handleZoomChange = (event: CustomEvent) => {
+      setViewMode(event.detail as GanttViewMode)
     }
+    
+    window.addEventListener('gantt-zoom-change', handleZoomChange as EventListener)
+    return () => window.removeEventListener('gantt-zoom-change', handleZoomChange as EventListener)
   }, [])
   
-  // Filter projects by team - show all projects that team members work on
+  // Filter projects by team and date range
   const filteredProjects = useMemo(() => {
-    if (selectedTeam === 'All Teams') return projects
+    let filtered = projects
     
-    // Get employees in the selected team
-    const teamEmployees = employees.filter(e => e.team === selectedTeam)
-    const teamEmployeeIds = new Set(teamEmployees.map(e => e.id))
-    
-    // Find all projects that have ANY assignments from team members
-    const projectsWithTeamMembers = new Set<string>()
-    assignments.forEach(a => {
-      // Check if this assignment is from a team member (handle both ID and name references)
-      const employee = employees.find(e => e.id === a.employeeId || e.name === a.employeeId)
-      if (employee && teamEmployeeIds.has(employee.id)) {
-        // Add both project ID and name to handle both reference types
-        projectsWithTeamMembers.add(a.projectId)
-        const project = projects.find(p => p.id === a.projectId || p.name === a.projectId)
-        if (project) {
-          projectsWithTeamMembers.add(project.id)
+    // Filter by team - show all projects that team members work on
+    if (selectedTeam !== 'All Teams') {
+      // Get employees in the selected team
+      const teamEmployees = employees.filter(e => e.team === selectedTeam)
+      const teamEmployeeIds = new Set(teamEmployees.map(e => e.id))
+      
+      // Find all projects that have ANY assignments from team members
+      const projectsWithTeamMembers = new Set<string>()
+      assignments.forEach(a => {
+        // Check if this assignment is from a team member (handle both ID and name references)
+        const employee = employees.find(e => e.id === a.employeeId || e.name === a.employeeId)
+        if (employee && teamEmployeeIds.has(employee.id)) {
+          // Add both project ID and name to handle both reference types
+          projectsWithTeamMembers.add(a.projectId)
+          const project = projects.find(p => p.id === a.projectId || p.name === a.projectId)
+          if (project) {
+            projectsWithTeamMembers.add(project.id)
+          }
         }
-      }
-    })
+      })
+      
+      // Filter projects that team members work on
+      filtered = filtered.filter(p => 
+        projectsWithTeamMembers.has(p.id) || projectsWithTeamMembers.has(p.name)
+      )
+    }
     
-    // Return all projects that team members work on
-    return projects.filter(p => 
-      projectsWithTeamMembers.has(p.id) || projectsWithTeamMembers.has(p.name)
-    )
-  }, [projects, assignments, employees, selectedTeam])
+    // Filter by date range if specified
+    if (dateRangeFilter) {
+      // Ensure dates are Date objects (they might be strings from localStorage)
+      const filterStart = dateRangeFilter.startDate instanceof Date 
+        ? dateRangeFilter.startDate 
+        : new Date(dateRangeFilter.startDate)
+      const filterEnd = dateRangeFilter.endDate instanceof Date
+        ? dateRangeFilter.endDate
+        : new Date(dateRangeFilter.endDate)
+        
+      filtered = filtered.filter(project => {
+        const projectStart = new Date(project.startDate)
+        const projectEnd = new Date(project.endDate)
+        
+        // Show project if it overlaps with the date range filter
+        return (
+          isWithinInterval(projectStart, { start: filterStart, end: filterEnd }) ||
+          isWithinInterval(projectEnd, { start: filterStart, end: filterEnd }) ||
+          (projectStart <= filterStart && projectEnd >= filterEnd)
+        )
+      })
+    }
+    
+    return filtered
+  }, [projects, assignments, employees, selectedTeam, dateRangeFilter])
   
   // Convert projects to Gantt tasks format
   const tasks: Task[] = useMemo(() => {
@@ -91,6 +126,22 @@ export function GanttChart() {
     })
   }
   
+  // Handle double click to edit project
+  const handleDoubleClick = (task: Task) => {
+    const project = filteredProjects.find(p => p.id === task.id)
+    if (project) {
+      setEditingProject(project)
+      setEditDialogOpen(true)
+    }
+  }
+  
+  // Handle project update from edit form
+  const handleProjectUpdate = (projectId: string, updates: Partial<Project>) => {
+    updateProject(projectId, updates)
+    setEditingProject(null)
+    setEditDialogOpen(false)
+  }
+  
   // Convert view mode to gantt-task-react format
   const getGanttViewMode = (): ViewMode => {
     switch (viewMode) {
@@ -104,22 +155,6 @@ export function GanttChart() {
         return ViewMode.Year
       default:
         return ViewMode.Week
-    }
-  }
-  
-  const handleZoomIn = () => {
-    const modes: GanttViewMode[] = ['day', 'week', 'month', 'year']
-    const currentIndex = modes.indexOf(viewMode)
-    if (currentIndex > 0) {
-      setViewMode(modes[currentIndex - 1])
-    }
-  }
-  
-  const handleZoomOut = () => {
-    const modes: GanttViewMode[] = ['day', 'week', 'month', 'year']
-    const currentIndex = modes.indexOf(viewMode)
-    if (currentIndex < modes.length - 1) {
-      setViewMode(modes[currentIndex + 1])
     }
   }
   
@@ -146,40 +181,16 @@ export function GanttChart() {
   }
   
   return (
-    <div className="relative">
-      {/* Zoom Controls */}
-      <div className="absolute top-2 right-2 z-20 flex gap-2 bg-white rounded-lg shadow-md p-1">
-        <button
-          onClick={handleZoomIn}
-          disabled={viewMode === 'day'}
-          className="p-2 bg-white hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Zoom In"
-        >
-          <ZoomIn className="w-4 h-4" />
-        </button>
-        <button
-          onClick={handleZoomOut}
-          disabled={viewMode === 'year'}
-          className="p-2 bg-white hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Zoom Out"
-        >
-          <ZoomOut className="w-4 h-4" />
-        </button>
-        <div className="flex items-center gap-1 px-2 py-1 border-l">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          <span className="text-sm capitalize">{viewMode}</span>
-        </div>
-      </div>
-      
+    <div>
       {/* Gantt Chart */}
       <div className="gantt-container" ref={ganttRef}>
         <Gantt
           tasks={tasks}
           viewMode={getGanttViewMode()}
-          viewDate={dateRange.current}
+          viewDate={currentDate}
           onDateChange={handleDateChange}
           onProgressChange={() => {}} // Disable progress changes
-          onDoubleClick={() => {}} // Disable double click
+          onDoubleClick={handleDoubleClick} // Enable double click for editing
           onClick={() => {}} // Disable click
           listCellWidth="" // Hide the task list
           columnWidth={viewMode === 'day' ? 50 : viewMode === 'week' ? 60 : viewMode === 'month' ? 120 : 200}
@@ -304,6 +315,14 @@ export function GanttChart() {
           width: 100% !important;
         }
       `}</style>
+      
+      {/* Edit Project Dialog */}
+      <EditProjectForm
+        project={editingProject}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onUpdateProject={handleProjectUpdate}
+      />
     </div>
   )
 }
