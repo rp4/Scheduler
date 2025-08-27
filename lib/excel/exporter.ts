@@ -43,32 +43,67 @@ export async function exportToExcel(data: ScheduleData): Promise<void> {
     XLSX.utils.book_append_sheet(wb, ws2, 'Projects')
   }
 
-  // Assignments sheet
-  const assignmentsData = data.assignments.map(assign => ({
-    'Employee ID': assign.employeeId,
-    'Project ID': assign.projectId,
-    Hours: assign.hours,
-    Week: assign.week,
-  }))
+  // Assignments sheet - convert to cross-tab format with weeks as columns
+  // First, create a map to aggregate hours by employee-project-week
+  const assignmentMap = new Map<string, Map<string, number>>()
+  const weekSet = new Set<string>()
+  
+  // Build the employee-project to week-hours mapping
+  data.assignments.forEach(assign => {
+    const employee = data.employees.find(e => e.id === assign.employeeId)
+    const project = data.projects.find(p => p.id === assign.projectId)
+    
+    if (employee && project) {
+      const key = `${employee.name}|${project.name}`
+      // Use the date field if available (yyyy-MM-dd format), otherwise fall back to week
+      const weekKey = assign.date || assign.week
+      weekSet.add(weekKey)
+      
+      if (!assignmentMap.has(key)) {
+        assignmentMap.set(key, new Map())
+      }
+      assignmentMap.get(key)!.set(weekKey, assign.hours)
+    }
+  })
+  
+  // Sort weeks chronologically (works for both yyyy-MM-dd and other formats)
+  const weeks = Array.from(weekSet).sort((a, b) => {
+    // Try to parse as dates first
+    const dateA = new Date(a)
+    const dateB = new Date(b)
+    
+    // If both are valid dates, sort chronologically
+    if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+      return dateA.getTime() - dateB.getTime()
+    }
+    
+    // Otherwise, fall back to string comparison
+    return a.localeCompare(b)
+  })
+  
+  // Create the cross-tab data
+  const assignmentsData: any[] = []
+  assignmentMap.forEach((weekHours, empProjKey) => {
+    const [employeeName, projectName] = empProjKey.split('|')
+    const row: any = {
+      Employee: employeeName,
+      Project: projectName,
+    }
+    
+    // Add hours for each week
+    weeks.forEach(week => {
+      row[week] = weekHours.get(week) || 0
+    })
+    
+    assignmentsData.push(row)
+  })
   
   if (assignmentsData.length > 0) {
     const ws3 = XLSX.utils.json_to_sheet(assignmentsData)
     XLSX.utils.book_append_sheet(wb, ws3, 'Assignments')
   }
 
-  // Skills sheet
-  if (data.skills && data.skills.length > 0) {
-    const skillsData = data.employees.map(emp => {
-      const row: any = { Employee: emp.name }
-      data.skills.forEach(skill => {
-        row[skill] = emp.skills[skill] || 'None'
-      })
-      return row
-    })
-    
-    const ws4 = XLSX.utils.json_to_sheet(skillsData)
-    XLSX.utils.book_append_sheet(wb, ws4, 'Skills')
-  }
+  // Note: Skills sheet removed per requirements
 
   // Generate and download file
   const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
