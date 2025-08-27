@@ -196,7 +196,14 @@ export function GanttChart() {
     // Ignore boundary markers
     if (task.id.startsWith('__boundary_')) return
     
-    console.log(`Date changed for ${task.name}: ${task.start} to ${task.end}`)
+    console.log('=== GanttChart handleDateChange ===')
+    console.log(`Task: ${task.name}`)
+    console.log(`Task ID: ${task.id}`)
+    console.log(`New start date:`, task.start)
+    console.log(`New end date:`, task.end)
+    console.log(`Start date type:`, typeof task.start)
+    console.log(`Start date value:`, task.start instanceof Date ? task.start.toISOString() : task.start)
+    
     updateProject(task.id, {
       startDate: task.start,
       endDate: task.end
