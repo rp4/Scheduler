@@ -228,9 +228,15 @@ export const useScheduleStore = create<ScheduleState>()(
       
       setHasHydrated: (state) => set({ hasHydrated: state }),
       
-      setOvertimeSortTrigger: () => set((state) => ({ overtimeSortTrigger: state.overtimeSortTrigger + 1 })),
+      setOvertimeSortTrigger: () => set((state) => ({ 
+        overtimeSortTrigger: state.overtimeSortTrigger + 1,
+        utilizationSortTrigger: 0  // Reset utilization trigger
+      })),
       
-      setUtilizationSortTrigger: () => set((state) => ({ utilizationSortTrigger: state.utilizationSortTrigger + 1 })),
+      setUtilizationSortTrigger: () => set((state) => ({ 
+        utilizationSortTrigger: state.utilizationSortTrigger + 1,
+        overtimeSortTrigger: 0  // Reset overtime trigger
+      })),
     }),
     {
       name: 'schedule-storage',

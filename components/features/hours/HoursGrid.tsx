@@ -14,6 +14,7 @@ export function HoursGrid() {
   const [viewMode, setViewMode] = useState<ViewMode>('employee')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [addingToRow, setAddingToRow] = useState<string | null>(null)
+  const [sortMode, setSortMode] = useState<'none' | 'overtime' | 'utilization'>('none')
   const tableRef = useRef<HTMLDivElement>(null)
   const hasScrolledToCurrentWeek = useRef(false)
   const employees = useScheduleStore((state) => state.employees)
@@ -211,6 +212,7 @@ export function HoursGrid() {
   useEffect(() => {
     if (overtimeSortTrigger > 0) {
       setViewMode('employee')
+      setSortMode('overtime')
     }
   }, [overtimeSortTrigger])
   
@@ -218,6 +220,7 @@ export function HoursGrid() {
   useEffect(() => {
     if (utilizationSortTrigger > 0) {
       setViewMode('employee')
+      setSortMode('utilization')
     }
   }, [utilizationSortTrigger])
   
@@ -599,7 +602,7 @@ export function HoursGrid() {
     return totalCapacity > 0 ? (totalAssignedHours / totalCapacity) * 100 : 0
   }, [filteredData.employees, weeks, getEmployeeWeekTotal])
 
-  // Sort employees by overtime or utilization if triggered
+  // Sort employees by overtime or utilization based on sort mode
   const sortedEmployees = useMemo(() => {
     const employeesWithMetrics = filteredData.employees.map(emp => ({
       ...emp,
@@ -607,18 +610,17 @@ export function HoursGrid() {
       utilization: getEmployeeUtilization(emp.id)
     }))
     
-    // Sort by utilization ascending (lowest first) if triggered
-    if (utilizationSortTrigger > 0) {
-      return employeesWithMetrics.sort((a, b) => a.utilization - b.utilization)
+    let sorted = [...employeesWithMetrics]
+    
+    // Apply sorting based on current sort mode
+    if (sortMode === 'utilization') {
+      sorted = sorted.sort((a, b) => a.utilization - b.utilization)
+    } else if (sortMode === 'overtime') {
+      sorted = sorted.sort((a, b) => b.overtimeHours - a.overtimeHours)
     }
     
-    // Sort by overtime hours descending if triggered
-    if (overtimeSortTrigger > 0) {
-      return employeesWithMetrics.sort((a, b) => b.overtimeHours - a.overtimeHours)
-    }
-    
-    return employeesWithMetrics
-  }, [filteredData.employees, overtimeSortTrigger, utilizationSortTrigger, getEmployeeOvertimeHours, getEmployeeUtilization])
+    return sorted
+  }, [filteredData.employees, sortMode, getEmployeeOvertimeHours, getEmployeeUtilization])
 
   const renderEmployeeView = () => {
 
@@ -629,7 +631,15 @@ export function HoursGrid() {
             {/* Month/Year header row */}
             <tr className="bg-gray-100">
               <th className="text-left p-2 border border-gray-200 font-semibold sticky left-0 bg-gray-100 z-10" rowSpan={2}>
-                Employee
+                <div className="flex items-center gap-2">
+                  <span>Employee</span>
+                  {sortMode === 'overtime' && (
+                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">↓ Overtime</span>
+                  )}
+                  {sortMode === 'utilization' && (
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">↑ Utilization</span>
+                  )}
+                </div>
               </th>
               <th className="text-left p-2 border border-gray-200 font-semibold" rowSpan={2}>
                 Team
