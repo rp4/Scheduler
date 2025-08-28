@@ -22,6 +22,7 @@ export function HoursGrid() {
   const selectedTeam = useScheduleStore((state) => state.selectedTeam)
   const dateRangeFilter = useScheduleStore((state) => state.dateRange)
   const overtimeSortTrigger = useScheduleStore((state) => state.overtimeSortTrigger)
+  const utilizationSortTrigger = useScheduleStore((state) => state.utilizationSortTrigger)
   const updateAssignment = useScheduleStore((state) => state.updateAssignment)
   const addAssignment = useScheduleStore((state) => state.addAssignment)
   const removeAssignment = useScheduleStore((state) => state.removeAssignment)
@@ -212,6 +213,13 @@ export function HoursGrid() {
       setViewMode('employee')
     }
   }, [overtimeSortTrigger])
+  
+  // Switch to employee view when utilization sort is triggered
+  useEffect(() => {
+    if (utilizationSortTrigger > 0) {
+      setViewMode('employee')
+    }
+  }, [utilizationSortTrigger])
   
   // Get month groups for header spanning
   const monthGroups = useMemo(() => {
@@ -573,20 +581,44 @@ export function HoursGrid() {
     return overtimeTotal
   }, [filteredData.employees, weeks, getEmployeeWeekTotal])
 
-  // Sort employees by overtime if triggered
+  // Calculate employee utilization
+  const getEmployeeUtilization = useCallback((employeeId: string) => {
+    const employee = filteredData.employees.find(e => e.id === employeeId)
+    if (!employee) return 0
+    
+    // Calculate total assigned hours
+    let totalAssignedHours = 0
+    weeks.forEach(week => {
+      totalAssignedHours += getEmployeeWeekTotal(employeeId, week)
+    })
+    
+    // Calculate total available capacity
+    const totalCapacity = employee.maxHours * weeks.length
+    
+    // Return utilization percentage
+    return totalCapacity > 0 ? (totalAssignedHours / totalCapacity) * 100 : 0
+  }, [filteredData.employees, weeks, getEmployeeWeekTotal])
+
+  // Sort employees by overtime or utilization if triggered
   const sortedEmployees = useMemo(() => {
-    const employeesWithOvertime = filteredData.employees.map(emp => ({
+    const employeesWithMetrics = filteredData.employees.map(emp => ({
       ...emp,
-      overtimeHours: getEmployeeOvertimeHours(emp.id)
+      overtimeHours: getEmployeeOvertimeHours(emp.id),
+      utilization: getEmployeeUtilization(emp.id)
     }))
+    
+    // Sort by utilization ascending (lowest first) if triggered
+    if (utilizationSortTrigger > 0) {
+      return employeesWithMetrics.sort((a, b) => a.utilization - b.utilization)
+    }
     
     // Sort by overtime hours descending if triggered
     if (overtimeSortTrigger > 0) {
-      return employeesWithOvertime.sort((a, b) => b.overtimeHours - a.overtimeHours)
+      return employeesWithMetrics.sort((a, b) => b.overtimeHours - a.overtimeHours)
     }
     
-    return employeesWithOvertime
-  }, [filteredData.employees, overtimeSortTrigger, weeks, filteredData.assignments, getEmployeeOvertimeHours])
+    return employeesWithMetrics
+  }, [filteredData.employees, overtimeSortTrigger, utilizationSortTrigger, weeks, filteredData.assignments, getEmployeeOvertimeHours, getEmployeeUtilization])
 
   const renderEmployeeView = () => {
 

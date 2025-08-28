@@ -12,6 +12,7 @@ interface ScheduleState extends ScheduleData {
   dateRange: DateRange | null
   hasHydrated: boolean
   overtimeSortTrigger: number
+  utilizationSortTrigger: number
   
   // Actions
   loadData: (data: ScheduleData) => void
@@ -26,6 +27,7 @@ interface ScheduleState extends ScheduleData {
   clearData: () => void
   setHasHydrated: (state: boolean) => void
   setOvertimeSortTrigger: () => void
+  setUtilizationSortTrigger: () => void
 }
 
 const initialState: ScheduleData = {
@@ -44,6 +46,7 @@ export const useScheduleStore = create<ScheduleState>()(
       dateRange: null,
       hasHydrated: false,
       overtimeSortTrigger: 0,
+      utilizationSortTrigger: 0,
 
       loadData: (data) => {
         console.log('📦 Storing data in Zustand:', {
@@ -226,6 +229,8 @@ export const useScheduleStore = create<ScheduleState>()(
       setHasHydrated: (state) => set({ hasHydrated: state }),
       
       setOvertimeSortTrigger: () => set((state) => ({ overtimeSortTrigger: state.overtimeSortTrigger + 1 })),
+      
+      setUtilizationSortTrigger: () => set((state) => ({ utilizationSortTrigger: state.utilizationSortTrigger + 1 })),
     }),
     {
       name: 'schedule-storage',
