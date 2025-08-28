@@ -315,8 +315,17 @@ export function GanttChart() {
   
   if (tasks.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        No projects to display. Upload an Excel file or load sample data to get started.
+      <div className="text-center py-16">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+          <Calendar className="w-8 h-8 text-gray-400" />
+        </div>
+        <h3 className="text-subheading mb-2">No Projects Yet</h3>
+        <p className="text-caption mb-6 max-w-md mx-auto">
+          Upload an Excel file or load sample data to start visualizing your project timeline.
+        </p>
+        <button className="btn-primary">
+          Get Started
+        </button>
       </div>
     )
   }
@@ -324,19 +333,19 @@ export function GanttChart() {
   return (
     <div>
       {/* Controls Bar */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex gap-2">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex gap-3">
           {/* Add Project Button */}
           <AddProjectForm onAddProject={addProject} />
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           {/* Zoom Controls */}
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center bg-gray-50 rounded-lg p-1">
             <button
               onClick={handleZoomIn}
               disabled={viewMode === 'week'}
-              className="p-2 bg-white hover:bg-gray-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-icon disabled:opacity-50 disabled:cursor-not-allowed"
               title="Zoom In"
             >
               <ZoomIn className="w-4 h-4" />
@@ -344,14 +353,14 @@ export function GanttChart() {
             <button
               onClick={handleZoomOut}
               disabled={viewMode === 'year'}
-              className="p-2 bg-white hover:bg-gray-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-icon disabled:opacity-50 disabled:cursor-not-allowed"
               title="Zoom Out"
             >
               <ZoomOut className="w-4 h-4" />
             </button>
-            <div className="flex items-center gap-1 px-3 py-2 bg-white rounded">
+            <div className="flex items-center gap-1 px-3 py-2">
               <Calendar className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium capitalize">{viewMode}</span>
+              <span className="text-sm font-medium capitalize text-gray-700">{viewMode}</span>
             </div>
           </div>
         </div>

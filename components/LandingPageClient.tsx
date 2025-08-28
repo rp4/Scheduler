@@ -1,31 +1,55 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Upload, Download, Rocket, FileSpreadsheet } from 'lucide-react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { parseExcelFile } from '@/lib/excel/parser'
 import { loadSampleData } from '@/lib/sample-data'
+import { showToast } from '@/components/ui/Toast'
 
 export function LandingPageClient() {
   const [isLoading, setIsLoading] = useState(false)
+  const [fileToProcess, setFileToProcess] = useState<File | null>(null)
   const loadData = useScheduleStore((state) => state.loadData)
+
+  // Process file in useEffect to ensure proper state updates
+  useEffect(() => {
+    if (!fileToProcess) return
+
+    const processFile = async () => {
+      try {
+        console.log('Starting to parse Excel file...')
+        const data = await parseExcelFile(fileToProcess)
+        console.log('Excel parsed successfully, data:', data)
+        
+        loadData(data)
+        console.log('Data loaded to store')
+        
+        // Keep loading state during navigation
+        console.log('Navigating to /schedule...')
+        window.location.href = '/schedule'
+        // Don't reset loading state here since we're navigating away
+      } catch (error) {
+        console.error('Failed to parse Excel file:', error)
+        showToast('error', 'Failed to parse Excel file', 'Please check the file format and try again.')
+        setIsLoading(false) // Only reset on error
+        setFileToProcess(null)
+      }
+    }
+
+    processFile()
+  }, [fileToProcess, loadData])
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (!file) return
-
-    setIsLoading(true)
-    try {
-      const data = await parseExcelFile(file)
-      loadData(data)
-      // Keep loading state during navigation
-      window.location.href = '/schedule'
-      // Don't reset loading state here since we're navigating away
-    } catch (error) {
-      console.error('Failed to parse Excel file:', error)
-      alert('Failed to parse Excel file. Please check the format.')
-      setIsLoading(false) // Only reset on error
+    if (!file) {
+      console.log('No file selected')
+      return
     }
+
+    console.log('File selected:', file.name, 'Size:', file.size)
+    setIsLoading(true)
+    setFileToProcess(file)
   }
 
   const handleLoadSampleData = async () => {

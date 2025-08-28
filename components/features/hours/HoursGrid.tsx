@@ -1128,8 +1128,17 @@ export function HoursGrid() {
 
   if (filteredData.employees.length === 0 || filteredData.projects.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        No data to display. Upload an Excel file or load sample data to get started.
+      <div className="text-center py-16">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full mb-4 shadow-inner">
+          <Users className="w-8 h-8 text-gray-500" />
+        </div>
+        <h3 className="text-subheading mb-2">No Data Available</h3>
+        <p className="text-caption mb-6 max-w-md mx-auto">
+          Upload an Excel file with employee and project data to start tracking hours.
+        </p>
+        <button className="btn-primary">
+          Get Started
+        </button>
       </div>
     )
   }
@@ -1137,17 +1146,17 @@ export function HoursGrid() {
   return (
     <div>
       {/* View Toggle and Controls */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex gap-2">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex bg-gray-50 rounded-lg p-1">
           <button
             onClick={() => {
               setViewMode('employee')
               hasScrolledToCurrentWeek.current = false // Reset scroll flag when changing views
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all duration-200 ${
               viewMode === 'employee'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <Users className="w-4 h-4" />
@@ -1158,10 +1167,10 @@ export function HoursGrid() {
               setViewMode('project')
               hasScrolledToCurrentWeek.current = false // Reset scroll flag when changing views
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all duration-200 ${
               viewMode === 'project'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <Briefcase className="w-4 h-4" />
