@@ -42,11 +42,11 @@ export function Navigation() {
   }
 
   return (
-    <div className="bg-white border-b border-gray-200">
-      <div className="container mx-auto px-4">
+    <div className="bg-white shadow-sm border-b border-gray-100">
+      <div className="container mx-auto px-6">
         <div className="flex justify-between items-center">
           {/* Navigation Tabs */}
-          <nav className="flex gap-1">
+          <nav className="flex">
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = currentView === tab.id
@@ -56,10 +56,10 @@ export function Navigation() {
                   key={tab.id}
                   onClick={() => handleTabClick(tab.id)}
                   className={cn(
-                    'flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2',
+                    'flex items-center gap-2 px-6 py-4 font-medium transition-all duration-200 border-b-2',
                     isActive
-                      ? 'text-blue-600 border-blue-600'
-                      : 'text-gray-600 border-transparent hover:text-gray-900 hover:border-gray-300'
+                      ? 'text-blue-600 border-blue-600 bg-blue-50/50'
+                      : 'text-gray-600 border-transparent hover:text-gray-900 hover:bg-gray-50'
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -76,14 +76,14 @@ export function Navigation() {
             
             {/* Team Selector */}
             <div className="flex items-center gap-2">
-              <label htmlFor="team-select" className="text-sm font-medium text-gray-700">
+              <label htmlFor="team-select" className="text-caption font-medium">
                 Team:
               </label>
               <select
                 id="team-select"
                 value={selectedTeam}
                 onChange={(e) => setSelectedTeam(e.target.value)}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="select-base text-sm min-w-[120px]"
               >
                 {teams.map((team) => (
                   <option key={team} value={team}>

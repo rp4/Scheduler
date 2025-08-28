@@ -146,7 +146,7 @@ export function DateRangeFilter() {
           onChange={handleStartDateChange}
           min={format(minDate, 'yyyy-MM-dd')}
           max={endDate || format(maxDate, 'yyyy-MM-dd')}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="input-sm"
         />
       </div>
       
@@ -161,7 +161,7 @@ export function DateRangeFilter() {
           onChange={handleEndDateChange}
           min={startDate || format(minDate, 'yyyy-MM-dd')}
           max={format(maxDate, 'yyyy-MM-dd')}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="input-sm"
         />
       </div>
     </div>

@@ -6,6 +6,7 @@ import { useScheduleStore } from '@/store/useScheduleStore'
 import { exportToExcel } from '@/lib/excel/exporter'
 import { OptimizationModal } from '@/components/features/optimization/OptimizationModal'
 import { useState, useMemo } from 'react'
+import { showToast } from '@/components/ui/Toast'
 
 export function Header() {
   const [showOptimization, setShowOptimization] = useState(false)
@@ -28,45 +29,45 @@ export function Header() {
       await exportToExcel(scheduleData)
     } catch (error) {
       console.error('Export failed:', error)
-      alert('Failed to export Excel file')
+      showToast('error', 'Export failed', 'Unable to export Excel file. Please try again.')
     }
   }
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
+      <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40">
+        <div className="container mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <Link 
                 href="/" 
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="btn-icon"
                 title="Home"
               >
                 <Home className="w-5 h-5" />
               </Link>
-              <Link href="/" className="text-2xl font-bold text-gray-900 hover:text-gray-700">
+              <Link href="/" className="text-heading hover:text-blue-600 transition-colors">
                 Resource Scheduler
               </Link>
             </div>
 
-            <div className="flex items-center gap-4">
-              {/* Export Button */}
-              <button
-                onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                Download Excel
-              </button>
-
+            <div className="flex items-center gap-3">
               {/* Optimize Button */}
               <button
                 onClick={() => setShowOptimization(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="btn-secondary flex items-center gap-2"
               >
                 <Brain className="w-4 h-4" />
                 Optimize Schedule
+              </button>
+
+              {/* Export Button */}
+              <button
+                onClick={handleExport}
+                className="btn-primary flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download Excel
               </button>
             </div>
           </div>

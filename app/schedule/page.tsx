@@ -22,7 +22,7 @@ export default function SchedulePage() {
   }, [])
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className="card animate-fade-in">
       {view === 'gantt' && <GanttChart />}
       {view === 'hours' && <HoursGrid />}
       {view === 'skills' && <SkillsMatrix />}

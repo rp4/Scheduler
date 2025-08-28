@@ -2,7 +2,7 @@
 
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useState, useMemo } from 'react'
-import { Search } from 'lucide-react'
+import { Search, Award } from 'lucide-react'
 import { ProficiencyLevel } from '@/types/schedule'
 
 const proficiencyColors = {
@@ -78,8 +78,17 @@ export function SkillsMatrix() {
 
   if (employees.length === 0 || skills.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        No skills data to display. Upload an Excel file or load sample data to get started.
+      <div className="text-center py-16">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full mb-4 shadow-inner">
+          <Award className="w-8 h-8 text-purple-500" />
+        </div>
+        <h3 className="text-subheading mb-2">No Skills Data</h3>
+        <p className="text-caption mb-6 max-w-md mx-auto">
+          Upload an Excel file or load sample data to start tracking employee skills and competencies.
+        </p>
+        <button className="btn-primary">
+          Get Started
+        </button>
       </div>
     )
   }
@@ -111,13 +120,13 @@ export function SkillsMatrix() {
             placeholder="Search employees..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input-base pl-10"
           />
         </div>
         <select
           value={selectedProject || ''}
           onChange={(e) => setSelectedProject(e.target.value || null)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="input-base"
         >
           <option value="">All Projects</option>
           {projects.map(project => (
@@ -127,7 +136,7 @@ export function SkillsMatrix() {
         <select
           value={selectedSkill || ''}
           onChange={(e) => setSelectedSkill(e.target.value || null)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="input-base"
         >
           <option value="">All Skills</option>
           {skills.map(skill => (
