@@ -669,8 +669,8 @@ export function HoursGrid() {
                     
 
                     return (
-                      <tr key={`${employee.id}-${project.id}`} className="bg-gray-50/50">
-                        <td className="pl-12 p-2 border border-gray-200 sticky left-0 bg-gray-50/50 text-gray-600 text-sm">
+                      <tr key={`${employee.id}-${project.id}`} className="bg-gray-50">
+                        <td className="pl-12 p-2 border border-gray-200 sticky left-0 bg-gray-50 text-gray-600 text-sm">
                           <span className="flex items-center gap-2">
                             <span className="text-gray-400">↳</span>
                             {project.name}
@@ -726,8 +726,8 @@ export function HoursGrid() {
                   
                   {/* Add Project row */}
                   {isExpanded && (
-                    <tr className="bg-blue-50/30">
-                      <td className="pl-12 p-2 border border-gray-200 sticky left-0 bg-blue-50/30 text-sm">
+                    <tr className="bg-blue-50">
+                      <td className="pl-12 p-2 border border-gray-200 sticky left-0 bg-blue-50 text-sm">
                         {addingToRow === employee.id ? (
                           <select
                             className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -939,8 +939,8 @@ export function HoursGrid() {
                     )
 
                     return (
-                      <tr key={`${project.id}-${employee.id}`} className="bg-gray-50/50">
-                        <td className="pl-12 p-2 border border-gray-200 sticky left-0 bg-gray-50/50 text-gray-600 text-sm">
+                      <tr key={`${project.id}-${employee.id}`} className="bg-gray-50">
+                        <td className="pl-12 p-2 border border-gray-200 sticky left-0 bg-gray-50 text-gray-600 text-sm">
                           <span className="flex items-center gap-2">
                             <span className="text-gray-400">↳</span>
                             {employee.name}
@@ -1022,8 +1022,8 @@ export function HoursGrid() {
                   
                   {/* Add Employee row */}
                   {isExpanded && (
-                    <tr className="bg-blue-50/30">
-                      <td className="pl-12 p-2 border border-gray-200 sticky left-0 bg-blue-50/30 text-sm">
+                    <tr className="bg-blue-50">
+                      <td className="pl-12 p-2 border border-gray-200 sticky left-0 bg-blue-50 text-sm">
                         {addingToRow === project.id ? (
                           <select
                             className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
