@@ -618,7 +618,7 @@ export function HoursGrid() {
     }
     
     return employeesWithMetrics
-  }, [filteredData.employees, overtimeSortTrigger, utilizationSortTrigger, weeks, filteredData.assignments, getEmployeeOvertimeHours, getEmployeeUtilization])
+  }, [filteredData.employees, overtimeSortTrigger, utilizationSortTrigger, getEmployeeOvertimeHours, getEmployeeUtilization])
 
   const renderEmployeeView = () => {
 

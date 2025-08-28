@@ -61,12 +61,14 @@ export function MetricsBar() {
     if (pathname.includes('/schedule')) {
       // Already on schedule page, just change the view
       window.location.hash = 'view=hours'
+      // Trigger sort after navigation
+      setTimeout(() => setOvertimeSortTrigger(), 100)
     } else {
       // Navigate to schedule page with hours view
       router.push('/schedule#view=hours')
+      // Trigger sort after navigation and component mount
+      setTimeout(() => setOvertimeSortTrigger(), 200)
     }
-    // Trigger the overtime sort in HoursGrid
-    setOvertimeSortTrigger()
   }
 
   const handleSkillsClick = () => {
@@ -85,12 +87,14 @@ export function MetricsBar() {
     if (pathname.includes('/schedule')) {
       // Already on schedule page, just change the view
       window.location.hash = 'view=hours'
+      // Trigger sort after navigation
+      setTimeout(() => setUtilizationSortTrigger(), 100)
     } else {
       // Navigate to schedule page with hours view
       router.push('/schedule#view=hours')
+      // Trigger sort after navigation and component mount
+      setTimeout(() => setUtilizationSortTrigger(), 200)
     }
-    // Trigger the utilization sort in HoursGrid
-    setUtilizationSortTrigger()
   }
 
   return (
