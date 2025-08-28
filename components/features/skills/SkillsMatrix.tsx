@@ -163,6 +163,9 @@ export function SkillsMatrix() {
               <th className="text-left p-3 border border-gray-200 font-semibold">
                 Team
               </th>
+              <th className="text-left p-3 border border-gray-200 font-semibold">
+                Max Hours
+              </th>
               {skills.map(skill => (
                 <th
                   key={skill}
@@ -184,8 +187,23 @@ export function SkillsMatrix() {
                     )}
                   </div>
                 </td>
-                <td className="p-3 border border-gray-200 text-sm text-gray-600">
-                  {employee.team}
+                <td className="p-3 border border-gray-200">
+                  <input
+                    type="text"
+                    value={employee.team || ''}
+                    onChange={(e) => updateEmployee(employee.id, { team: e.target.value })}
+                    className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </td>
+                <td className="p-3 border border-gray-200">
+                  <input
+                    type="number"
+                    value={employee.maxHours}
+                    onChange={(e) => updateEmployee(employee.id, { maxHours: parseInt(e.target.value) || 0 })}
+                    className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    min="0"
+                    max="168"
+                  />
                 </td>
                 {skills.map(skill => {
                   const level = employee.skills[skill] || 'None'
@@ -221,6 +239,11 @@ export function SkillsMatrix() {
               </td>
               <td className="p-3 border border-gray-200">
                 {/* Empty cell for Team column */}
+              </td>
+              <td className="p-3 border border-gray-200 text-center">
+                <div className="text-sm font-semibold">
+                  {filteredEmployees.reduce((sum, e) => sum + e.maxHours, 0)}
+                </div>
               </td>
               {skills.map(skill => {
                 const experts = filteredEmployees.filter(e => e.skills[skill] === 'Expert').length
