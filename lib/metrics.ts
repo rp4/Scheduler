@@ -71,19 +71,32 @@ export function calculateMetrics(
   employees.forEach(emp => employeeMap.set(emp.id, emp))
   projects.forEach(proj => projectMap.set(proj.id, proj))
 
-
-  // Calculate overtime in single pass
-  const employeeHours = new Map<string, number>()
+  // Calculate overtime per time period (week)
+  // Structure: employeeId -> timeperiod -> hours
+  const employeeHoursByPeriod = new Map<string, Map<string, number>>()
   
   assignments.forEach(assignment => {
-    const current = employeeHours.get(assignment.employeeId) || 0
-    employeeHours.set(assignment.employeeId, current + assignment.hours)
+    const period = assignment.date || assignment.week
+    
+    if (!employeeHoursByPeriod.has(assignment.employeeId)) {
+      employeeHoursByPeriod.set(assignment.employeeId, new Map())
+    }
+    
+    const periodMap = employeeHoursByPeriod.get(assignment.employeeId)!
+    const currentHours = periodMap.get(period) || 0
+    periodMap.set(period, currentHours + assignment.hours)
   })
 
+  // Calculate overtime for each employee per period
   employees.forEach(employee => {
-    const hours = employeeHours.get(employee.id) || 0
-    if (hours > employee.maxHours) {
-      overtimeHours += hours - employee.maxHours
+    const periodHours = employeeHoursByPeriod.get(employee.id)
+    if (periodHours) {
+      // Check each period separately
+      periodHours.forEach((hours) => {
+        if (hours > employee.maxHours) {
+          overtimeHours += hours - employee.maxHours
+        }
+      })
     }
   })
 
