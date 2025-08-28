@@ -5,12 +5,16 @@ import { calculateMetrics } from '@/lib/metrics'
 import { Clock, TrendingUp, Target } from 'lucide-react'
 import { useEffect, useState, useMemo } from 'react'
 import { isWithinInterval } from 'date-fns'
+import { useRouter, usePathname } from 'next/navigation'
 
 export function MetricsBar() {
   const employees = useScheduleStore((state) => state.employees)
   const projects = useScheduleStore((state) => state.projects)
   const assignments = useScheduleStore((state) => state.assignments)
   const dateRange = useScheduleStore((state) => state.dateRange)
+  const setOvertimeSortTrigger = useScheduleStore((state) => state.setOvertimeSortTrigger)
+  const router = useRouter()
+  const pathname = usePathname()
   const [metrics, setMetrics] = useState({
     overtimeHours: 0,
     resourceUtilization: 0,
@@ -51,12 +55,27 @@ export function MetricsBar() {
     setMetrics(calculated)
   }, [employees, projects, filteredAssignments])
 
+  const handleOvertimeClick = () => {
+    // Navigate to schedule page with hours view
+    if (pathname.includes('/schedule')) {
+      // Already on schedule page, just change the view
+      window.location.hash = 'view=hours'
+    } else {
+      // Navigate to schedule page with hours view
+      router.push('/schedule#view=hours')
+    }
+    // Trigger the overtime sort in HoursGrid
+    setOvertimeSortTrigger()
+  }
+
   return (
     <div className="bg-white shadow-sm border-b border-gray-100">
       <div className="container mx-auto px-6 py-4">
         <div className="grid grid-cols-3 gap-4">
           {/* Overtime Hours */}
-          <div className="flex items-center gap-3 p-4 bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200">
+          <div 
+            onClick={handleOvertimeClick}
+            className="flex items-center gap-3 p-4 bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200">
             <div className="p-2.5 bg-white rounded-lg shadow-sm">
               <Clock className="w-5 h-5 text-orange-600" />
             </div>
