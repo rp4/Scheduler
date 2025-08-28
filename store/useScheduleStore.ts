@@ -77,70 +77,50 @@ export const useScheduleStore = create<ScheduleState>()(
       updateProject: (id, data) => set((state) => {
         const oldProject = state.projects.find(p => p.id === id)
         
-        console.log('=== updateProject Debug ===')
-        console.log('Project ID:', id)
-        console.log('Old Project:', oldProject)
-        console.log('Update Data:', data)
+        if (!oldProject) {
+          return {
+            projects: state.projects.map(p => 
+              p.id === id ? { ...p, ...data } : p
+            ),
+          }
+        }
         
-        // If project dates are being changed, calculate the week shift for assignments
-        if (oldProject && data.startDate && data.startDate !== oldProject.startDate) {
-          console.log('Date change detected!')
-          console.log('Old start date:', oldProject.startDate)
-          console.log('New start date:', data.startDate)
-          
+        // Check if dates are being changed
+        const datesChanged = (data.startDate && data.startDate !== oldProject.startDate) || 
+                           (data.endDate && data.endDate !== oldProject.endDate)
+        
+        if (datesChanged) {
           const oldStartDate = new Date(oldProject.startDate)
-          const newStartDate = new Date(data.startDate)
+          const newStartDate = data.startDate ? new Date(data.startDate) : oldStartDate
+          const newEndDate = data.endDate ? new Date(data.endDate) : new Date(oldProject.endDate)
           
-          console.log('Parsed old date:', oldStartDate.toISOString())
-          console.log('Parsed new date:', newStartDate.toISOString())
-          
-          // Calculate the difference in weeks
+          // Calculate the week shift if start date changed
           const msPerWeek = 7 * 24 * 60 * 60 * 1000
-          const weekDifference = Math.round((newStartDate.getTime() - oldStartDate.getTime()) / msPerWeek)
+          const weekDifference = data.startDate ? 
+            Math.round((newStartDate.getTime() - oldStartDate.getTime()) / msPerWeek) : 0
           
-          console.log('Week difference calculated:', weekDifference)
-          
-          if (weekDifference !== 0) {
-            // Find assignments for this project
-            const projectAssignments = state.assignments.filter(a => 
-              a.projectId === id || a.projectId === oldProject.name
-            )
-            
-            console.log('Found assignments for project:', projectAssignments.length)
-            console.log('Sample assignments:', projectAssignments.slice(0, 3))
-            
-            // Update assignments for this project by shifting their weeks
-            const updatedAssignments = state.assignments.map(a => {
-              // Check if assignment belongs to this project (handle both ID and name references)
-              if (a.projectId === id || a.projectId === oldProject.name) {
-                console.log('Updating assignment:', a)
-                console.log('Old week value:', a.week)
-                console.log('Old date value:', a.date)
-                
-                // If assignment has a date field (yyyy-MM-dd format), use that
-                // Otherwise we need to keep the week field as is (it's a display format like "JAN 1")
+          // Update assignments for this project
+          const updatedAssignments = state.assignments.map(a => {
+            // Check if assignment belongs to this project
+            if (a.projectId === id || a.projectId === oldProject.name) {
+              let assignmentDate: Date | null = null
+              let newAssignment = { ...a }
+              
+              // First, shift the assignment date if project moved
+              if (weekDifference !== 0) {
                 if (a.date) {
-                  const oldDate = new Date(a.date)
-                  const newDate = new Date(oldDate.getTime() + (weekDifference * msPerWeek))
-                  const newDateStr = newDate.toISOString().split('T')[0] // yyyy-MM-dd format
-                  
-                  console.log('Updated date from', a.date, 'to', newDateStr)
-                  
-                  // Also update the week display string
-                  const newWeekStr = new Date(newDate).toLocaleDateString('en-US', { 
+                  assignmentDate = new Date(a.date)
+                  const shiftedDate = new Date(assignmentDate.getTime() + (weekDifference * msPerWeek))
+                  const newDateStr = shiftedDate.toISOString().split('T')[0]
+                  const newWeekStr = shiftedDate.toLocaleDateString('en-US', { 
                     month: 'short', 
                     day: 'numeric' 
                   }).toUpperCase()
                   
-                  return { ...a, date: newDateStr, week: newWeekStr }
+                  newAssignment = { ...newAssignment, date: newDateStr, week: newWeekStr }
+                  assignmentDate = shiftedDate
                 } else {
-                  // For older data without date field, we can't reliably shift the week
-                  // because week is stored as "JAN 1" format which doesn't include year
-                  console.log('Warning: Assignment has no date field, cannot shift week reliably')
-                  // We'll need to infer the date from the week string and current year
-                  // This is a best effort approach
-                  
-                  // Try to parse the week string (format: "MMM D")
+                  // For older data without date field, try to parse week string
                   const currentYear = new Date().getFullYear()
                   const monthMap: Record<string, number> = {
                     'JAN': 0, 'FEB': 1, 'MAR': 2, 'APR': 3, 'MAY': 4, 'JUN': 5,
@@ -153,55 +133,58 @@ export const useScheduleStore = create<ScheduleState>()(
                     const day = parseInt(parts[1])
                     
                     if (!isNaN(month) && !isNaN(day)) {
-                      // Create date for the current year
                       const oldDate = new Date(currentYear, month, day)
-                      
-                      // Check if this date makes sense relative to the old project dates
-                      // If the date is way off, try adjacent years
                       const projectYear = new Date(oldProject.startDate).getFullYear()
                       if (Math.abs(currentYear - projectYear) > 1) {
                         oldDate.setFullYear(projectYear)
                       }
                       
-                      const newDate = new Date(oldDate.getTime() + (weekDifference * msPerWeek))
-                      const newDateStr = newDate.toISOString().split('T')[0]
-                      const newWeekStr = newDate.toLocaleDateString('en-US', { 
+                      const shiftedDate = new Date(oldDate.getTime() + (weekDifference * msPerWeek))
+                      const newDateStr = shiftedDate.toISOString().split('T')[0]
+                      const newWeekStr = shiftedDate.toLocaleDateString('en-US', { 
                         month: 'short', 
                         day: 'numeric' 
                       }).toUpperCase()
                       
-                      console.log('Inferred date shift from', a.week, 'to', newWeekStr)
-                      
-                      return { ...a, date: newDateStr, week: newWeekStr }
+                      newAssignment = { ...newAssignment, date: newDateStr, week: newWeekStr }
+                      assignmentDate = shiftedDate
                     }
                   }
-                  
-                  // If we can't parse it, keep as is
-                  console.log('Could not parse week string, keeping as is')
-                  return a
+                }
+              } else {
+                // No shift, just get the current assignment date
+                if (newAssignment.date) {
+                  assignmentDate = new Date(newAssignment.date)
                 }
               }
-              return a
-            })
-            
-            console.log('Updated assignments count:', updatedAssignments.filter(a => 
-              a.projectId === id || a.projectId === oldProject.name
-            ).length)
-            
-            return {
-              projects: state.projects.map(p => 
-                p.id === id ? { ...p, ...data } : p
-              ),
-              assignments: updatedAssignments
+              
+              // Now check if the assignment date is within the new project range
+              // If not, set hours to 0
+              if (assignmentDate) {
+                // Add 6 days to get the end of the week (assignments are for full weeks)
+                const weekEnd = new Date(assignmentDate.getTime() + (6 * 24 * 60 * 60 * 1000))
+                
+                // Check if the assignment week is outside the new project date range
+                if (assignmentDate > newEndDate || weekEnd < newStartDate) {
+                  // Assignment is completely outside project range - zero out hours
+                  newAssignment = { ...newAssignment, hours: 0 }
+                }
+              }
+              
+              return newAssignment
             }
-          } else {
-            console.log('No week difference, skipping assignment update')
+            return a
+          })
+          
+          return {
+            projects: state.projects.map(p => 
+              p.id === id ? { ...p, ...data } : p
+            ),
+            assignments: updatedAssignments
           }
-        } else {
-          console.log('No date change or missing data, only updating project')
         }
         
-        // If no date change or no assignments affected, just update the project
+        // If no date change, just update the project
         return {
           projects: state.projects.map(p => 
             p.id === id ? { ...p, ...data } : p
