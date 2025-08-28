@@ -118,6 +118,7 @@ export function calculateMetrics(
  * Returns total skill points based on employee proficiency levels matching project requirements.
  * 
  * Scoring: Beginner = 1 point, Intermediate = 2 points, Expert = 3 points
+ * Each unique employee-project pair is counted only once, regardless of how many weeks they're assigned.
  * 
  * @param assignments - Array of assignments to evaluate
  * @param employeeMap - Pre-computed map of employee ID to Employee for O(1) lookup
@@ -131,8 +132,19 @@ export function calculateSkillsMatch(
 ): number {
   let totalScore = 0
   
+  // Track unique employee-project pairs to avoid counting duplicates
+  const uniquePairs = new Set<string>()
+  
   // Process each assignment
   for (const assignment of assignments) {
+    // Create unique key for this employee-project combination
+    const pairKey = `${assignment.employeeId}-${assignment.projectId}`
+    
+    // Skip if we've already counted this employee-project pair
+    if (uniquePairs.has(pairKey)) {
+      continue
+    }
+    
     const employee = employeeMap.get(assignment.employeeId)
     const project = projectMap.get(assignment.projectId)
     
@@ -141,7 +153,10 @@ export function calculateSkillsMatch(
       continue
     }
     
-    // Calculate score for this assignment
+    // Mark this pair as processed
+    uniquePairs.add(pairKey)
+    
+    // Calculate score for this unique employee-project pair
     for (const skill of project.requiredSkills) {
       const proficiency = employee.skills[skill]
       if (proficiency) {
