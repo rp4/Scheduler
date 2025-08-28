@@ -13,6 +13,7 @@ export function MetricsBar() {
   const assignments = useScheduleStore((state) => state.assignments)
   const dateRange = useScheduleStore((state) => state.dateRange)
   const setOvertimeSortTrigger = useScheduleStore((state) => state.setOvertimeSortTrigger)
+  const setUtilizationSortTrigger = useScheduleStore((state) => state.setUtilizationSortTrigger)
   const router = useRouter()
   const pathname = usePathname()
   const [metrics, setMetrics] = useState({
@@ -68,6 +69,30 @@ export function MetricsBar() {
     setOvertimeSortTrigger()
   }
 
+  const handleSkillsClick = () => {
+    // Navigate to schedule page with skills view and project subview
+    if (pathname.includes('/schedule')) {
+      // Already on schedule page, just change the view
+      window.location.hash = 'view=skills&subview=project'
+    } else {
+      // Navigate to schedule page with skills view and project subview
+      router.push('/schedule#view=skills&subview=project')
+    }
+  }
+
+  const handleUtilizationClick = () => {
+    // Navigate to schedule page with hours view
+    if (pathname.includes('/schedule')) {
+      // Already on schedule page, just change the view
+      window.location.hash = 'view=hours'
+    } else {
+      // Navigate to schedule page with hours view
+      router.push('/schedule#view=hours')
+    }
+    // Trigger the utilization sort in HoursGrid
+    setUtilizationSortTrigger()
+  }
+
   return (
     <div className="bg-white shadow-sm border-b border-gray-100">
       <div className="container mx-auto px-6 py-4">
@@ -88,7 +113,9 @@ export function MetricsBar() {
           </div>
 
           {/* Resource Utilization */}
-          <div className="flex items-center gap-3 p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200">
+          <div 
+            onClick={handleUtilizationClick}
+            className="flex items-center gap-3 p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200">
             <div className="p-2.5 bg-white rounded-lg shadow-sm">
               <TrendingUp className="w-5 h-5 text-blue-600" />
             </div>
@@ -101,7 +128,9 @@ export function MetricsBar() {
           </div>
 
           {/* Skills Matching */}
-          <div className="flex items-center gap-3 p-4 bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200">
+          <div 
+            onClick={handleSkillsClick}
+            className="flex items-center gap-3 p-4 bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200">
             <div className="p-2.5 bg-white rounded-lg shadow-sm">
               <Target className="w-5 h-5 text-green-600" />
             </div>

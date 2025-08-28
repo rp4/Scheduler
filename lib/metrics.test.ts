@@ -345,9 +345,9 @@ describe('Resource Utilization Calculation', () => {
     ]
     
     const assignments: Assignment[] = [
-      { id: '1', employeeId: 'john', projectId: 'p1', hours: 8, date: '2024-01-01' },
-      { id: '2', employeeId: 'john', projectId: 'p1', hours: 8, date: '2024-01-02' },
-      { id: '3', employeeId: 'john', projectId: 'p1', hours: 8, date: '2024-01-03' }
+      { id: '1', employeeId: 'john', projectId: 'p1', hours: 8, week: 'JAN 1', date: '2024-01-01' },
+      { id: '2', employeeId: 'john', projectId: 'p1', hours: 8, week: 'JAN 2', date: '2024-01-02' },
+      { id: '3', employeeId: 'john', projectId: 'p1', hours: 8, week: 'JAN 3', date: '2024-01-03' }
     ]
     
     // Total assigned: 24
