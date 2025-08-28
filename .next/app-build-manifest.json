@@ -31,12 +31,6 @@
       "static/chunks/common-_app-pages-browser_lib_utils_ts-_app-pages-browser_store_useScheduleStore_ts.js",
       "static/css/app/schedule/page.css",
       "static/chunks/app/schedule/page.js"
-    ],
-    "/_not-found/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/vendor.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
     ]
   }
 }

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { format } from 'date-fns'
+import { useScheduleStore } from '@/store/useScheduleStore'
 import type { Project } from '@/types/schedule'
 
 interface EditProjectFormProps {
@@ -14,10 +15,33 @@ interface EditProjectFormProps {
 }
 
 export function EditProjectForm({ project, open, onOpenChange, onUpdateProject }: EditProjectFormProps) {
+  const employees = useScheduleStore((state) => state.employees)
   const [name, setName] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set())
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Get all unique skills from employees
+  const availableSkills = useMemo(() => {
+    const skillsSet = new Set<string>()
+    employees.forEach(employee => {
+      Object.keys(employee.skills || {}).forEach(skill => {
+        skillsSet.add(skill)
+      })
+    })
+    return Array.from(skillsSet).sort()
+  }, [employees])
+
+  const handleSkillToggle = (skill: string) => {
+    const newSkills = new Set(selectedSkills)
+    if (newSkills.has(skill)) {
+      newSkills.delete(skill)
+    } else {
+      newSkills.add(skill)
+    }
+    setSelectedSkills(newSkills)
+  }
 
   // Update form when project changes
   useEffect(() => {
@@ -25,6 +49,7 @@ export function EditProjectForm({ project, open, onOpenChange, onUpdateProject }
       setName(project.name)
       setStartDate(format(new Date(project.startDate), 'yyyy-MM-dd'))
       setEndDate(format(new Date(project.endDate), 'yyyy-MM-dd'))
+      setSelectedSkills(new Set(project.requiredSkills || []))
       setErrors({})
     }
   }, [project])
@@ -60,7 +85,8 @@ export function EditProjectForm({ project, open, onOpenChange, onUpdateProject }
     onUpdateProject(project.id, {
       name: name.trim(),
       startDate: new Date(startDate),
-      endDate: new Date(endDate)
+      endDate: new Date(endDate),
+      requiredSkills: Array.from(selectedSkills)
     })
     
     // Close dialog
@@ -69,6 +95,7 @@ export function EditProjectForm({ project, open, onOpenChange, onUpdateProject }
   
   const handleCancel = () => {
     setErrors({})
+    setSelectedSkills(new Set())
     onOpenChange(false)
   }
 
@@ -163,6 +190,28 @@ export function EditProjectForm({ project, open, onOpenChange, onUpdateProject }
                 <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>
               )}
             </div>
+            
+            {/* Required Skills */}
+            {availableSkills.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Required Skills
+                </label>
+                <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2">
+                  {availableSkills.map(skill => (
+                    <label key={skill} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                      <input
+                        type="checkbox"
+                        checked={selectedSkills.has(skill)}
+                        onChange={() => handleSkillToggle(skill)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{skill}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             
             <div className="flex gap-3 pt-2">
               <button
