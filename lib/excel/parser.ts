@@ -73,9 +73,22 @@ export async function parseExcelFile(file: File): Promise<ScheduleData> {
     reader.onload = (e) => {
       try {
         console.log('📊 Starting Excel parsing...')
-        const data = new Uint8Array(e.target?.result as ArrayBuffer)
+        console.log('📊 File size:', file.size, 'bytes')
+        
+        if (!e.target?.result) {
+          throw new Error('Failed to read file content')
+        }
+        
+        const data = new Uint8Array(e.target.result as ArrayBuffer)
+        console.log('📊 Array buffer size:', data.length)
+        
         const workbook = XLSX.read(data, { type: 'array', cellDates: true })
         console.log('📋 Workbook sheets found:', Object.keys(workbook.Sheets))
+        
+        if (!workbook.Sheets || Object.keys(workbook.Sheets).length === 0) {
+          throw new Error('No sheets found in the Excel file')
+        }
+        
         const result = parseWorkbook(workbook)
         console.log('✅ Parsing complete:', {
           employees: result.employees.length,
@@ -87,11 +100,19 @@ export async function parseExcelFile(file: File): Promise<ScheduleData> {
         resolve(result)
       } catch (error) {
         console.error('❌ Error parsing Excel:', error)
-        reject(error)
+        if (error instanceof Error) {
+          reject(error)
+        } else {
+          reject(new Error('Unknown error occurred while parsing Excel file'))
+        }
       }
     }
     
-    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.onerror = (error) => {
+      console.error('❌ FileReader error:', error)
+      reject(new Error('Failed to read file. Please try again.'))
+    }
+    
     reader.readAsArrayBuffer(file)
   })
 }

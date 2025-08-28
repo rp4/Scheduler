@@ -22,16 +22,24 @@ export function LandingPageClient() {
         const data = await parseExcelFile(fileToProcess)
         console.log('Excel parsed successfully, data:', data)
         
+        // Validate data has content
+        if (!data.employees?.length && !data.projects?.length && !data.assignments?.length) {
+          throw new Error('No data found in the Excel file. Please check the sheet names and format.')
+        }
+        
         loadData(data)
         console.log('Data loaded to store')
         
-        // Keep loading state during navigation
-        console.log('Navigating to /schedule...')
-        window.location.href = '/schedule'
+        // Add small delay to ensure state is saved
+        setTimeout(() => {
+          console.log('Navigating to /schedule...')
+          window.location.href = '/schedule'
+        }, 100)
         // Don't reset loading state here since we're navigating away
       } catch (error) {
         console.error('Failed to parse Excel file:', error)
-        showToast('error', 'Failed to parse Excel file', 'Please check the file format and try again.')
+        const errorMessage = error instanceof Error ? error.message : 'Please check the file format and try again.'
+        showToast('error', 'Failed to parse Excel file', errorMessage)
         setIsLoading(false) // Only reset on error
         setFileToProcess(null)
       }
@@ -47,9 +55,20 @@ export function LandingPageClient() {
       return
     }
 
-    console.log('File selected:', file.name, 'Size:', file.size)
+    console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type)
+    
+    // Validate file type
+    if (!file.name.match(/\.(xlsx|xls)$/i)) {
+      showToast('error', 'Invalid file type', 'Please select an Excel file (.xlsx or .xls)')
+      event.target.value = '' // Reset input
+      return
+    }
+    
     setIsLoading(true)
     setFileToProcess(file)
+    
+    // Reset the input value so the same file can be selected again if needed
+    event.target.value = ''
   }
 
   const handleLoadSampleData = async () => {

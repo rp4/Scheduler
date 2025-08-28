@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Users, Briefcase, ChevronDown, ChevronRight, Plus, ArrowRight } from 'lucide-react'
 import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, getMonth, getYear } from 'date-fns'
 import { generateId } from '@/lib/utils'
@@ -21,6 +21,7 @@ export function HoursGrid() {
   const assignments = useScheduleStore((state) => state.assignments)
   const selectedTeam = useScheduleStore((state) => state.selectedTeam)
   const dateRangeFilter = useScheduleStore((state) => state.dateRange)
+  const overtimeSortTrigger = useScheduleStore((state) => state.overtimeSortTrigger)
   const updateAssignment = useScheduleStore((state) => state.updateAssignment)
   const addAssignment = useScheduleStore((state) => state.addAssignment)
   const removeAssignment = useScheduleStore((state) => state.removeAssignment)
@@ -204,6 +205,13 @@ export function HoursGrid() {
       return () => clearTimeout(timer)
     }
   }, [currentWeekIndex, viewMode, employees.length]) // Re-run when view mode changes or data loads
+
+  // Switch to employee view when overtime sort is triggered
+  useEffect(() => {
+    if (overtimeSortTrigger > 0) {
+      setViewMode('employee')
+    }
+  }, [overtimeSortTrigger])
   
   // Get month groups for header spanning
   const monthGroups = useMemo(() => {
@@ -535,21 +543,52 @@ export function HoursGrid() {
     }
   }
 
-  const renderEmployeeView = () => {
-    // Group assignments by employee and week
-    const getEmployeeWeekTotal = (employeeId: string, weekDate: Date) => {
-      const employee = filteredData.employees.find(e => e.id === employeeId)
-      const dateStr = formatWeekToDate(weekDate)
-      const weekStr = formatWeek(weekDate)
-      
-      return filteredData.assignments
-        .filter(a => {
-          const employeeMatch = a.employeeId === employeeId || a.employeeId === employee?.name
-          const dateMatch = a.date === dateStr || (!a.date && a.week === weekStr)
-          return employeeMatch && dateMatch
-        })
-        .reduce((sum, a) => sum + a.hours, 0)
+  // Helper functions for employee view
+  const getEmployeeWeekTotal = useCallback((employeeId: string, weekDate: Date) => {
+    const employee = filteredData.employees.find(e => e.id === employeeId)
+    const dateStr = formatWeekToDate(weekDate)
+    const weekStr = formatWeek(weekDate)
+    
+    return filteredData.assignments
+      .filter(a => {
+        const employeeMatch = a.employeeId === employeeId || a.employeeId === employee?.name
+        const dateMatch = a.date === dateStr || (!a.date && a.week === weekStr)
+        return employeeMatch && dateMatch
+      })
+      .reduce((sum, a) => sum + a.hours, 0)
+  }, [filteredData.employees, filteredData.assignments])
+
+  // Calculate overtime hours for each employee
+  const getEmployeeOvertimeHours = useCallback((employeeId: string) => {
+    const employee = filteredData.employees.find(e => e.id === employeeId)
+    if (!employee) return 0
+    
+    let overtimeTotal = 0
+    weeks.forEach(week => {
+      const weekTotal = getEmployeeWeekTotal(employeeId, week)
+      if (weekTotal > employee.maxHours) {
+        overtimeTotal += weekTotal - employee.maxHours
+      }
+    })
+    return overtimeTotal
+  }, [filteredData.employees, weeks, getEmployeeWeekTotal])
+
+  // Sort employees by overtime if triggered
+  const sortedEmployees = useMemo(() => {
+    const employeesWithOvertime = filteredData.employees.map(emp => ({
+      ...emp,
+      overtimeHours: getEmployeeOvertimeHours(emp.id)
+    }))
+    
+    // Sort by overtime hours descending if triggered
+    if (overtimeSortTrigger > 0) {
+      return employeesWithOvertime.sort((a, b) => b.overtimeHours - a.overtimeHours)
     }
+    
+    return employeesWithOvertime
+  }, [filteredData.employees, overtimeSortTrigger, weeks, filteredData.assignments, getEmployeeOvertimeHours])
+
+  const renderEmployeeView = () => {
 
     return (
       <div className="overflow-x-auto" ref={tableRef}>
@@ -596,7 +635,7 @@ export function HoursGrid() {
             </tr>
           </thead>
           <tbody>
-            {filteredData.employees.map(employee => {
+            {sortedEmployees.map(employee => {
               const totalHours = filteredData.assignments
                 .filter(a => a.employeeId === employee.id || a.employeeId === employee.name)
                 .reduce((sum, a) => sum + a.hours, 0)
