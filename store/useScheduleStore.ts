@@ -59,6 +59,8 @@ export const useScheduleStore = create<ScheduleState>()(
         return set(() => ({
           ...data,
           teams: ['All Teams', ...Array.from(new Set(data.employees.map(e => e.team).filter((t): t is string => Boolean(t))))],
+          // Reset date range when loading new data so it recalculates based on new project dates
+          dateRange: null,
         }))
       },
 
@@ -250,13 +252,35 @@ export const useScheduleStore = create<ScheduleState>()(
         dateRange: state.dateRange,
       }),
       onRehydrateStorage: () => (state) => {
-        // Convert dateRange strings back to Date objects after rehydration
+        // Helper to parse date strings as local dates to avoid timezone issues
+        const parseLocalDate = (dateValue: any): Date => {
+          if (dateValue instanceof Date) return dateValue
+          const dateStr = String(dateValue)
+          // For YYYY-MM-DD format, parse as local date not UTC
+          if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = dateStr.split('-').map(Number)
+            return new Date(year, month - 1, day) // month is 0-indexed
+          }
+          return new Date(dateValue)
+        }
+        
+        // Convert date strings back to Date objects after rehydration
         if (state?.dateRange) {
           state.dateRange = {
-            startDate: new Date(state.dateRange.startDate),
-            endDate: new Date(state.dateRange.endDate)
+            startDate: parseLocalDate(state.dateRange.startDate),
+            endDate: parseLocalDate(state.dateRange.endDate)
           }
         }
+        
+        // Convert project dates back to Date objects
+        if (state?.projects) {
+          state.projects = state.projects.map(project => ({
+            ...project,
+            startDate: parseLocalDate(project.startDate),
+            endDate: parseLocalDate(project.endDate)
+          }))
+        }
+        
         state?.setHasHydrated(true)
       },
     }

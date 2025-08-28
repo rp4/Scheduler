@@ -10,6 +10,18 @@ export function DateRangeFilter() {
   const setDateRange = useScheduleStore((state) => state.setDateRange)
   const projects = useScheduleStore((state) => state.projects)
   
+  // Helper to parse dates properly to avoid timezone issues
+  const parseProjectDate = (dateValue: any): Date => {
+    if (dateValue instanceof Date) return dateValue
+    const dateStr = String(dateValue)
+    // For YYYY-MM-DD format, parse as local date not UTC
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = dateStr.split('-').map(Number)
+      return new Date(year, month - 1, day) // month is 0-indexed
+    }
+    return new Date(dateValue)
+  }
+  
   // Calculate default date range based on actual project dates
   const getDefaultDateRange = () => {
     if (projects.length === 0) {
@@ -22,12 +34,12 @@ export function DateRangeFilter() {
     }
     
     // Find earliest start date and latest end date from all projects
-    let earliestStart = new Date(projects[0].startDate)
-    let latestEnd = new Date(projects[0].endDate)
+    let earliestStart = parseProjectDate(projects[0].startDate)
+    let latestEnd = parseProjectDate(projects[0].endDate)
     
     projects.forEach(project => {
-      const projectStart = new Date(project.startDate)
-      const projectEnd = new Date(project.endDate)
+      const projectStart = parseProjectDate(project.startDate)
+      const projectEnd = parseProjectDate(project.endDate)
       
       if (projectStart < earliestStart) {
         earliestStart = projectStart
@@ -95,9 +107,12 @@ export function DateRangeFilter() {
     setStartDate(newStartDate)
     
     if (newStartDate && endDate) {
+      // Parse dates as local dates to avoid timezone issues
+      const [startYear, startMonth, startDay] = newStartDate.split('-').map(Number)
+      const [endYear, endMonth, endDay] = endDate.split('-').map(Number)
       setDateRange({
-        startDate: new Date(newStartDate),
-        endDate: new Date(endDate)
+        startDate: new Date(startYear, startMonth - 1, startDay),
+        endDate: new Date(endYear, endMonth - 1, endDay)
       })
     }
   }
@@ -107,9 +122,12 @@ export function DateRangeFilter() {
     setEndDate(newEndDate)
     
     if (startDate && newEndDate) {
+      // Parse dates as local dates to avoid timezone issues
+      const [startYear, startMonth, startDay] = startDate.split('-').map(Number)
+      const [endYear, endMonth, endDay] = newEndDate.split('-').map(Number)
       setDateRange({
-        startDate: new Date(startDate),
-        endDate: new Date(newEndDate)
+        startDate: new Date(startYear, startMonth - 1, startDay),
+        endDate: new Date(endYear, endMonth - 1, endDay)
       })
     }
   }

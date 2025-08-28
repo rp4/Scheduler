@@ -4,7 +4,7 @@ import React from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Users, Briefcase, ChevronDown, ChevronRight, Plus, ArrowRight } from 'lucide-react'
-import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, isWithinInterval, getMonth, getYear } from 'date-fns'
+import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, getMonth, getYear } from 'date-fns'
 import { generateId } from '@/lib/utils'
 import { Project } from '@/types/schedule'
 
@@ -41,24 +41,80 @@ export function HoursGrid() {
     let rangeStart: Date
     let rangeEnd: Date
     
+    console.log('📅 Week generation starting...')
+    console.log('  dateRangeFilter exists?', !!dateRangeFilter)
+    console.log('  projects.length:', projects.length)
+    
     if (dateRangeFilter) {
-      // Ensure dates are Date objects (they might be strings from localStorage)
-      const start = dateRangeFilter.startDate instanceof Date 
-        ? dateRangeFilter.startDate 
-        : new Date(dateRangeFilter.startDate)
-      const end = dateRangeFilter.endDate instanceof Date
-        ? dateRangeFilter.endDate
-        : new Date(dateRangeFilter.endDate)
-      rangeStart = startOfWeek(start, { weekStartsOn: 1 })
+      console.log('  Using dateRangeFilter:', dateRangeFilter.startDate, '-', dateRangeFilter.endDate)
+      
+      // Parse dates properly to avoid timezone issues
+      const parseFilterDate = (dateValue: any): Date => {
+        if (dateValue instanceof Date) {
+          // Check if the date appears to have timezone corruption
+          // (e.g., shows as 19:00 the day before when it should be midnight)
+          const hours = dateValue.getHours()
+          if (hours === 19 || hours === 18) {
+            // This is likely a UTC date that was meant to be local midnight
+            // Add hours to get to the next day's midnight
+            const corrected = new Date(dateValue)
+            corrected.setHours(corrected.getHours() + (24 - hours))
+            return corrected
+          }
+          return dateValue
+        }
+        const dateStr = String(dateValue)
+        // For YYYY-MM-DD format, parse as local date not UTC
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const [year, month, day] = dateStr.split('-').map(Number)
+          return new Date(year, month - 1, day) // month is 0-indexed
+        }
+        return new Date(dateValue)
+      }
+      
+      const start = parseFilterDate(dateRangeFilter.startDate)
+      const end = parseFilterDate(dateRangeFilter.endDate)
+      
+      // Check if the earliest date is a Monday
+      const startDay = start.getDay()
+      if (startDay === 1) {
+        // If it starts on Monday, use that Monday directly
+        rangeStart = start
+      } else {
+        rangeStart = startOfWeek(start, { weekStartsOn: 1 })
+      }
       rangeEnd = endOfWeek(end, { weekStartsOn: 1 })
     } else if (projects.length > 0) {
-      // Use actual project dates for default range
-      let earliestStart = new Date(projects[0].startDate)
-      let latestEnd = new Date(projects[0].endDate)
+      console.log('  Using project dates to determine range')
       
-      projects.forEach(project => {
-        const projectStart = new Date(project.startDate)
-        const projectEnd = new Date(project.endDate)
+      // Helper to parse dates consistently
+      const parseProjectDate = (dateValue: any): Date => {
+        if (dateValue instanceof Date) {
+          return dateValue
+        }
+        const dateStr = String(dateValue)
+        // For YYYY-MM-DD format, parse as local date not UTC
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const [year, month, day] = dateStr.split('-').map(Number)
+          return new Date(year, month - 1, day) // month is 0-indexed
+        }
+        return new Date(dateValue)
+      }
+      
+      console.log('  First project:', projects[0].name)
+      console.log('    Raw startDate:', projects[0].startDate, `(type: ${typeof projects[0].startDate})`)
+      console.log('    Raw endDate:', projects[0].endDate, `(type: ${typeof projects[0].endDate})`)
+      
+      // Use actual project dates for default range
+      let earliestStart = parseProjectDate(projects[0].startDate)
+      let latestEnd = parseProjectDate(projects[0].endDate)
+      
+      console.log('    Parsed start:', format(earliestStart, 'yyyy-MM-dd EEEE'))
+      console.log('    Parsed end:', format(latestEnd, 'yyyy-MM-dd EEEE'))
+      
+      projects.forEach((project) => {
+        const projectStart = parseProjectDate(project.startDate)
+        const projectEnd = parseProjectDate(project.endDate)
         
         if (projectStart < earliestStart) {
           earliestStart = projectStart
@@ -68,7 +124,15 @@ export function HoursGrid() {
         }
       })
       
-      rangeStart = startOfWeek(earliestStart, { weekStartsOn: 1 })
+      // Special handling: if earliest project starts on a Monday, 
+      // start from that Monday, not the previous one
+      const startDay = earliestStart.getDay()
+      
+      if (startDay === 1) {
+        rangeStart = earliestStart // Use the Monday directly
+      } else {
+        rangeStart = startOfWeek(earliestStart, { weekStartsOn: 1 })
+      }
       rangeEnd = endOfWeek(latestEnd, { weekStartsOn: 1 })
     } else {
       // Fallback to current year if no projects
@@ -79,9 +143,18 @@ export function HoursGrid() {
     
     const weekList: Date[] = []
     let currentWeek = startOfWeek(rangeStart, { weekStartsOn: 1 }) // Start on Monday
+    
+    console.log('  Final range:', format(rangeStart, 'yyyy-MM-dd'), 'to', format(rangeEnd, 'yyyy-MM-dd'))
+    console.log('  Starting week generation from:', format(currentWeek, 'yyyy-MM-dd'))
+    
     while (currentWeek <= rangeEnd) {
       weekList.push(currentWeek)
       currentWeek = addWeeks(currentWeek, 1)
+    }
+    
+    console.log('  Generated', weekList.length, 'weeks')
+    if (weekList.length > 0) {
+      console.log('  First 3 weeks:', weekList.slice(0, 3).map(w => format(w, 'yyyy-MM-dd')).join(', '))
     }
     
     return weekList
@@ -194,9 +267,103 @@ export function HoursGrid() {
   // Check if a week falls within project date range
   const isWeekInProjectRange = (weekDate: Date, project: Project) => {
     const weekEnd = endOfWeek(weekDate, { weekStartsOn: 1 })
-    return isWithinInterval(weekDate, { start: project.startDate, end: project.endDate }) ||
-           isWithinInterval(weekEnd, { start: project.startDate, end: project.endDate }) ||
-           (weekDate <= project.startDate && weekEnd >= project.endDate)
+    
+    // Parse project dates properly to avoid timezone issues
+    // If it's already a Date object, use it; otherwise parse the string
+    let projectStart: Date
+    let projectEnd: Date
+    
+    if (project.startDate instanceof Date) {
+      // Check for timezone corruption (19:00 or 18:00 on previous day)
+      const hours = project.startDate.getHours()
+      if (hours === 19 || hours === 18) {
+        // This is a corrupted date - advance to next day midnight
+        projectStart = new Date(project.startDate)
+        projectStart.setHours(projectStart.getHours() + (24 - hours))
+        projectStart.setMinutes(0)
+        projectStart.setSeconds(0)
+        projectStart.setMilliseconds(0)
+      } else {
+        projectStart = project.startDate
+      }
+    } else {
+      // For date strings in format "YYYY-MM-DD", parse as local date not UTC
+      const startStr = String(project.startDate)
+      if (startStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [year, month, day] = startStr.split('-').map(Number)
+        projectStart = new Date(year, month - 1, day) // month is 0-indexed
+      } else {
+        projectStart = new Date(project.startDate)
+      }
+    }
+    
+    if (project.endDate instanceof Date) {
+      // Check for timezone corruption (19:00 or 18:00 on previous day)
+      const hours = project.endDate.getHours()
+      if (hours === 19 || hours === 18) {
+        // This is a corrupted date - advance to next day midnight
+        projectEnd = new Date(project.endDate)
+        projectEnd.setHours(projectEnd.getHours() + (24 - hours))
+        projectEnd.setMinutes(0)
+        projectEnd.setSeconds(0)
+        projectEnd.setMilliseconds(0)
+      } else {
+        projectEnd = project.endDate
+      }
+    } else {
+      // For date strings in format "YYYY-MM-DD", parse as local date not UTC
+      const endStr = String(project.endDate)
+      if (endStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [year, month, day] = endStr.split('-').map(Number)
+        projectEnd = new Date(year, month - 1, day) // month is 0-indexed
+      } else {
+        projectEnd = new Date(project.endDate)
+      }
+    }
+    
+    // Debug logging for specific weeks
+    const weekStr = format(weekDate, 'yyyy-MM-dd')
+    const projectStartDay = projectStart.getDay()
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    
+    // Log for the week of Aug 25, 2025 (the problematic week before Sep 1)
+    if (weekStr === '2025-08-25' || weekStr === '2025-09-01') {
+      console.log(`🔍 Checking week ${weekStr} for project "${project.name}":`)
+      console.log(`  Raw project.startDate:`, project.startDate, `(type: ${typeof project.startDate})`)
+      console.log(`  Raw project.endDate:`, project.endDate, `(type: ${typeof project.endDate})`)
+      console.log(`  Parsed projectStart:`, format(projectStart, 'yyyy-MM-dd EEEE'), `(${projectStart.toISOString()})`)
+      console.log(`  Parsed projectEnd:`, format(projectEnd, 'yyyy-MM-dd'))
+      console.log(`  Project starts on:`, dayNames[projectStartDay])
+      console.log(`  Week date:`, format(weekDate, 'yyyy-MM-dd EEEE'))
+      console.log(`  Week end:`, format(weekEnd, 'yyyy-MM-dd EEEE'))
+    }
+    
+    // Special case: if project starts on a Monday (day 1), don't include the previous week
+    if (projectStartDay === 1) {
+      // Week is in range if it starts on or after the project start date
+      const result = weekDate >= projectStart && weekDate <= projectEnd
+      
+      if (weekStr === '2025-08-25' || weekStr === '2025-09-01') {
+        console.log(`  Monday start logic: weekDate >= projectStart?`, weekDate >= projectStart)
+        console.log(`  weekDate time:`, weekDate.getTime())
+        console.log(`  projectStart time:`, projectStart.getTime())
+        console.log(`  Result:`, result, result ? '✅ EDITABLE' : '❌ NOT EDITABLE')
+      }
+      
+      return result
+    }
+    
+    // For other days, check if there's any overlap between the week and the project
+    // Week overlaps if: weekEnd >= projectStart AND weekStart <= projectEnd
+    const result = weekEnd >= projectStart && weekDate <= projectEnd
+    
+    if (weekStr === '2025-08-25' || weekStr === '2025-09-01') {
+      console.log(`  Non-Monday logic: weekEnd >= projectStart?`, weekEnd >= projectStart)
+      console.log(`  weekDate <= projectEnd?`, weekDate <= projectEnd)
+      console.log(`  Result:`, result, result ? '✅ EDITABLE' : '❌ NOT EDITABLE')
+    }
+    
+    return result
   }
 
   // Toggle row expansion
