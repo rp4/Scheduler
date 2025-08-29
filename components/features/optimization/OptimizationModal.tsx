@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { X, Brain, Settings, Play } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { X, Brain, Settings, Play, Check, AlertCircle } from 'lucide-react'
 import { useScheduleStore } from '@/store/useScheduleStore'
-import { optimizeSchedule } from '@/lib/optimization/optimizer'
+import { optimizeSchedule, OptimizationResult } from '@/lib/optimization/optimizer'
 import * as Slider from '@radix-ui/react-slider'
 
 interface OptimizationModalProps {
@@ -15,73 +15,100 @@ type Algorithm = 'genetic' | 'annealing' | 'constraint'
 export function OptimizationModal({ onClose }: OptimizationModalProps) {
   const [algorithm, setAlgorithm] = useState<Algorithm>('genetic')
   const [isOptimizing, setIsOptimizing] = useState(false)
+  const [showResults, setShowResults] = useState(false)
+  const [results, setResults] = useState<OptimizationResult | null>(null)
   const [progress, setProgress] = useState(0)
-  const [weights, setWeights] = useState({
-    overtime: 0.4,
-    utilization: 0.3,
-    skills: 0.3,
+  // Use raw values 0-10, will normalize when passing to optimizer
+  const [rawWeights, setRawWeights] = useState({
+    overtime: 10,
+    utilization: 7,
+    skills: 7,
   })
 
-  const scheduleData = useScheduleStore((state) => ({
-    employees: state.employees,
-    projects: state.projects,
-    assignments: state.assignments,
-    skills: state.skills || [],
-    teams: state.teams || [],
-  }))
+  // Get data from store with proper selectors
+  const employees = useScheduleStore((state) => state.employees)
+  const projects = useScheduleStore((state) => state.projects)
+  const assignments = useScheduleStore((state) => state.assignments)
+  const skills = useScheduleStore((state) => state.skills)
+  const teams = useScheduleStore((state) => state.teams)
+  
+  // Memoize the schedule data object
+  const scheduleData = useMemo(() => ({
+    employees,
+    projects,
+    assignments,
+    skills: skills || [],
+    teams: teams || [],
+  }), [employees, projects, assignments, skills, teams])
 
   const handleOptimize = async () => {
     setIsOptimizing(true)
     setProgress(0)
 
-    // Simulate progress updates
-    const progressInterval = setInterval(() => {
-      setProgress(prev => Math.min(prev + 10, 90))
-    }, 200)
+    // Normalize weights to sum to 1
+    const total = rawWeights.overtime + rawWeights.utilization + rawWeights.skills
+    const normalizedWeights = {
+      overtime: total > 0 ? rawWeights.overtime / total : 0.33,
+      utilization: total > 0 ? rawWeights.utilization / total : 0.33,
+      skills: total > 0 ? rawWeights.skills / total : 0.34,
+    }
 
     try {
-      // Run optimization (this would be in a web worker in production)
+      // Run optimization
       const result = await optimizeSchedule(
         scheduleData,
         algorithm,
-        weights,
+        normalizedWeights,
         (prog) => setProgress(prog)
       )
 
-      clearInterval(progressInterval)
       setProgress(100)
-
-      // Apply results
-      if (result.assignments) {
-        useScheduleStore.getState().loadData({
-          ...scheduleData,
-          assignments: result.assignments,
-          skills: useScheduleStore.getState().skills,
-          teams: useScheduleStore.getState().teams,
-        })
-      }
-
+      setResults(result)
+      
+      // Show results after a brief delay
       setTimeout(() => {
-        onClose()
+        setIsOptimizing(false)
+        setShowResults(true)
       }, 500)
     } catch (error) {
       console.error('Optimization failed:', error)
-      clearInterval(progressInterval)
       setIsOptimizing(false)
     }
   }
-
-  // Normalize weights to sum to 1
-  const normalizeWeights = () => {
-    const sum = weights.overtime + weights.utilization + weights.skills
-    if (sum === 0) return
+  
+  const handleApply = () => {
+    if (!results) return
     
-    setWeights({
-      overtime: weights.overtime / sum,
-      utilization: weights.utilization / sum,
-      skills: weights.skills / sum,
+    // Apply the suggestions by replacing placeholder assignments
+    const newAssignments = [...scheduleData.assignments]
+    
+    // Remove placeholder assignments
+    const filtered = newAssignments.filter(
+      a => a.employeeId !== 'Placeholder' && a.employeeId !== 'placeholder'
+    )
+    
+    // Add suggested assignments
+    results.suggestions.forEach(suggestion => {
+      filtered.push({
+        id: `${suggestion.suggestedEmployeeId}-${suggestion.projectId}-${suggestion.week}`,
+        employeeId: suggestion.suggestedEmployeeId,
+        projectId: suggestion.projectId,
+        week: suggestion.week,
+        hours: suggestion.originalHours,
+      })
     })
+    
+    // Update the store
+    useScheduleStore.getState().loadData({
+      ...scheduleData,
+      assignments: filtered,
+      skills: useScheduleStore.getState().skills,
+      teams: useScheduleStore.getState().teams,
+    })
+    
+    onClose()
   }
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -102,63 +129,119 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
 
         {/* Content */}
         <div className="p-6">
-          {!isOptimizing ? (
-            <>
-              {/* Algorithm Selection */}
-              <div className="mb-6">
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  Select Algorithm
-                </h3>
-                <div className="space-y-2">
-                  <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      value="genetic"
-                      checked={algorithm === 'genetic'}
-                      onChange={(e) => setAlgorithm(e.target.value as Algorithm)}
-                      className="mt-1"
-                    />
-                    <div>
-                      <div className="font-medium">Genetic Algorithm</div>
-                      <div className="text-sm text-gray-600">
-                        Best for complex multi-objective optimization with many constraints
-                      </div>
-                    </div>
-                  </label>
-                  <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      value="annealing"
-                      checked={algorithm === 'annealing'}
-                      onChange={(e) => setAlgorithm(e.target.value as Algorithm)}
-                      className="mt-1"
-                    />
-                    <div>
-                      <div className="font-medium">Simulated Annealing</div>
-                      <div className="text-sm text-gray-600">
-                        Good for local optimization and fine-tuning existing schedules
-                      </div>
-                    </div>
-                  </label>
-                  <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      value="constraint"
-                      checked={algorithm === 'constraint'}
-                      onChange={(e) => setAlgorithm(e.target.value as Algorithm)}
-                      className="mt-1"
-                    />
-                    <div>
-                      <div className="font-medium">Constraint Satisfaction</div>
-                      <div className="text-sm text-gray-600">
-                        Fast, rule-based assignment focusing on hard constraints
-                      </div>
-                    </div>
-                  </label>
+          {showResults && results ? (
+            // Results View
+            <div>
+              <h3 className="font-semibold mb-4">Optimization Results</h3>
+              
+              {results.suggestions.length === 0 ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600">No placeholder assignments found to optimize.</p>
                 </div>
-              </div>
-
+              ) : (
+                <>
+                  {/* Summary Metrics */}
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <div className="text-gray-600">Overtime Hours</div>
+                        <div className="font-semibold">
+                          {results.metrics.currentOvertimeHours.toFixed(0)} → {results.metrics.predictedOvertimeHours.toFixed(0)}
+                          <span className={`ml-2 text-xs ${results.metrics.predictedOvertimeHours < results.metrics.currentOvertimeHours ? 'text-green-600' : 'text-orange-600'}`}>
+                            ({results.metrics.predictedOvertimeHours - results.metrics.currentOvertimeHours > 0 ? '+' : ''}{(results.metrics.predictedOvertimeHours - results.metrics.currentOvertimeHours).toFixed(0)})
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-gray-600">Utilization</div>
+                        <div className="font-semibold">
+                          {(results.metrics.currentUtilization * 100).toFixed(1)}% → {(results.metrics.predictedUtilization * 100).toFixed(1)}%
+                          <span className={`ml-2 text-xs ${results.metrics.predictedUtilization > results.metrics.currentUtilization ? 'text-green-600' : 'text-orange-600'}`}>
+                            ({results.metrics.predictedUtilization > results.metrics.currentUtilization ? '+' : ''}{((results.metrics.predictedUtilization - results.metrics.currentUtilization) * 100).toFixed(1)}%)
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-gray-600">Skills Match</div>
+                        <div className="font-semibold">
+                          {(results.metrics.currentSkillsMatch * 100).toFixed(1)}% → {(results.metrics.predictedSkillsMatch * 100).toFixed(1)}%
+                          <span className={`ml-2 text-xs ${results.metrics.predictedSkillsMatch > results.metrics.currentSkillsMatch ? 'text-green-600' : 'text-orange-600'}`}>
+                            ({results.metrics.predictedSkillsMatch > results.metrics.currentSkillsMatch ? '+' : ''}{((results.metrics.predictedSkillsMatch - results.metrics.currentSkillsMatch) * 100).toFixed(1)}%)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Suggestions Table */}
+                  <div className="mb-6">
+                    <h4 className="font-medium mb-2">Suggested Assignments</h4>
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left">Project</th>
+                            <th className="px-3 py-2 text-left">Week</th>
+                            <th className="px-3 py-2 text-left">Employee</th>
+                            <th className="px-3 py-2 text-center">Hours</th>
+                            <th className="px-3 py-2 text-center">Overtime</th>
+                            <th className="px-3 py-2 text-center">Utilization</th>
+                            <th className="px-3 py-2 text-center">Skills</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {results.suggestions.map((suggestion, index) => (
+                            <tr key={index} className="hover:bg-gray-50">
+                              <td className="px-3 py-2">{suggestion.projectName}</td>
+                              <td className="px-3 py-2">{suggestion.week}</td>
+                              <td className="px-3 py-2 font-medium">{suggestion.suggestedEmployeeName}</td>
+                              <td className="px-3 py-2 text-center">{suggestion.originalHours}</td>
+                              <td className="px-3 py-2 text-center">
+                                <span className={`inline-flex px-2 py-1 rounded text-xs ${
+                                  suggestion.overtimeScore < 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                                }`}>
+                                  {suggestion.overtimeScore.toFixed(0)}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                <span className="inline-flex px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                                  {suggestion.utilizationScore.toFixed(0)}%
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                <span className="inline-flex px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">
+                                  {suggestion.skillsScore.toFixed(0)}%
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleApply}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                    >
+                      <Check className="w-4 h-4" />
+                      Apply Changes
+                    </button>
+                    <button
+                      onClick={onClose}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : !isOptimizing ? (
+            <>
               {/* Optimization Weights */}
               <div className="mb-6">
                 <h3 className="font-semibold mb-3">Optimization Weights</h3>
@@ -167,17 +250,16 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
                     <div className="flex justify-between mb-2">
                       <span className="text-sm font-medium">Minimize Overtime</span>
                       <span className="text-sm text-gray-600">
-                        {Math.round(weights.overtime * 100)}%
+                        {rawWeights.overtime}/10
                       </span>
                     </div>
                     <Slider.Root
-                      value={[weights.overtime]}
+                      value={[rawWeights.overtime]}
                       onValueChange={([value]) => 
-                        setWeights({ ...weights, overtime: value })
+                        setRawWeights({ ...rawWeights, overtime: value })
                       }
-                      onValueCommit={normalizeWeights}
-                      max={1}
-                      step={0.05}
+                      max={10}
+                      step={1}
                       className="relative flex items-center select-none touch-none w-full h-5"
                     >
                       <Slider.Track className="bg-gray-200 relative grow rounded-full h-2">
@@ -191,17 +273,16 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
                     <div className="flex justify-between mb-2">
                       <span className="text-sm font-medium">Maximize Utilization</span>
                       <span className="text-sm text-gray-600">
-                        {Math.round(weights.utilization * 100)}%
+                        {rawWeights.utilization}/10
                       </span>
                     </div>
                     <Slider.Root
-                      value={[weights.utilization]}
+                      value={[rawWeights.utilization]}
                       onValueChange={([value]) => 
-                        setWeights({ ...weights, utilization: value })
+                        setRawWeights({ ...rawWeights, utilization: value })
                       }
-                      onValueCommit={normalizeWeights}
-                      max={1}
-                      step={0.05}
+                      max={10}
+                      step={1}
                       className="relative flex items-center select-none touch-none w-full h-5"
                     >
                       <Slider.Track className="bg-gray-200 relative grow rounded-full h-2">
@@ -215,17 +296,16 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
                     <div className="flex justify-between mb-2">
                       <span className="text-sm font-medium">Optimize Skills Matching</span>
                       <span className="text-sm text-gray-600">
-                        {Math.round(weights.skills * 100)}%
+                        {rawWeights.skills}/10
                       </span>
                     </div>
                     <Slider.Root
-                      value={[weights.skills]}
+                      value={[rawWeights.skills]}
                       onValueChange={([value]) => 
-                        setWeights({ ...weights, skills: value })
+                        setRawWeights({ ...rawWeights, skills: value })
                       }
-                      onValueCommit={normalizeWeights}
-                      max={1}
-                      step={0.05}
+                      max={10}
+                      step={1}
                       className="relative flex items-center select-none touch-none w-full h-5"
                     >
                       <Slider.Track className="bg-gray-200 relative grow rounded-full h-2">
@@ -235,6 +315,28 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
                     </Slider.Root>
                   </div>
                 </div>
+              </div>
+
+              {/* Algorithm Selection */}
+              <div className="mb-6">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  Optimization Algorithm
+                </h3>
+                <select
+                  value={algorithm}
+                  onChange={(e) => setAlgorithm(e.target.value as Algorithm)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="genetic">Genetic Algorithm - Best for complex multi-objective optimization</option>
+                  <option value="annealing">Simulated Annealing - Good for local optimization and fine-tuning</option>
+                  <option value="constraint">Constraint Satisfaction - Fast, rule-based assignment</option>
+                </select>
+                <p className="mt-2 text-xs text-gray-600">
+                  {algorithm === 'genetic' && 'Uses evolutionary computation to explore a wide solution space and find globally optimal assignments.'}
+                  {algorithm === 'annealing' && 'Gradually improves assignments by making small changes, good for refining existing schedules.'}
+                  {algorithm === 'constraint' && 'Quickly finds valid assignments using hard rules, prioritizing constraint satisfaction over optimization.'}
+                </p>
               </div>
 
               {/* Actions */}
