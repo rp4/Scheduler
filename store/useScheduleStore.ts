@@ -2,6 +2,12 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import debounce from 'lodash.debounce'
 import type { ScheduleData, Employee, Project, Assignment, DateRange } from '@/types/schedule'
+import { 
+  initializeIncrementalMetrics, 
+  updateMetricsForAssignment,
+  addAssignmentToMetrics,
+  removeAssignmentFromMetrics 
+} from '@/lib/metrics/incrementalMetrics'
 
 interface ScheduleState extends ScheduleData {
   selectedTeam: string
@@ -61,7 +67,7 @@ const customStorage = {
 
 export const useScheduleStore = create<ScheduleState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...initialState,
       selectedTeam: 'All Teams',
       dateRange: null,
@@ -70,6 +76,10 @@ export const useScheduleStore = create<ScheduleState>()(
       utilizationSortTrigger: 0,
 
       loadData: (data) => {
+        // Initialize incremental metrics with the loaded data
+        if (data.assignments.length > 500) {
+          initializeIncrementalMetrics(data.employees, data.projects, data.assignments)
+        }
         
         return set(() => ({
           ...data,
@@ -219,19 +229,34 @@ export const useScheduleStore = create<ScheduleState>()(
         }
       }),
 
-      updateAssignment: (id, data) => set((state) => ({
-        assignments: state.assignments.map(a => 
-          a.id === id ? { ...a, ...data } : a
-        ),
-      })),
+      updateAssignment: (id, data) => {
+        // Update incremental metrics if using them
+        get().assignments.length > 500 && updateMetricsForAssignment(id, data)
+        
+        return set((state) => ({
+          assignments: state.assignments.map(a => 
+            a.id === id ? { ...a, ...data } : a
+          ),
+        }))
+      },
 
-      addAssignment: (assignment) => set((state) => ({
-        assignments: [...state.assignments, assignment],
-      })),
+      addAssignment: (assignment) => {
+        // Update incremental metrics if using them
+        get().assignments.length > 500 && addAssignmentToMetrics(assignment)
+        
+        return set((state) => ({
+          assignments: [...state.assignments, assignment],
+        }))
+      },
 
-      removeAssignment: (id) => set((state) => ({
-        assignments: state.assignments.filter(a => a.id !== id),
-      })),
+      removeAssignment: (id) => {
+        // Update incremental metrics if using them
+        get().assignments.length > 500 && removeAssignmentFromMetrics(id)
+        
+        return set((state) => ({
+          assignments: state.assignments.filter(a => a.id !== id),
+        }))
+      },
 
       clearData: () => set(initialState),
       

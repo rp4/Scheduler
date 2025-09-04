@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { calculateMetrics } from '@/lib/metrics'
+import { initializeIncrementalMetrics, getIncrementalMetrics } from '@/lib/metrics/incrementalMetrics'
 import { Clock, TrendingUp, Target } from 'lucide-react'
 import { isWithinInterval } from 'date-fns'
 import { useRouter, usePathname } from 'next/navigation'
@@ -47,9 +48,19 @@ export const MetricsBar = React.memo(function MetricsBar() {
     })
   }, [assignments, dateRange])
 
-  // Calculate metrics with memoization to prevent recalculation on every render
+  // Calculate metrics with incremental updates for better performance
   const metrics = useMemo(() => {
-    return calculateMetrics(employees, projects, filteredAssignments)
+    // Use incremental metrics for large datasets, fallback to regular calculation for small ones
+    const USE_INCREMENTAL_THRESHOLD = 500 // Use incremental if > 500 assignments
+    
+    if (filteredAssignments.length > USE_INCREMENTAL_THRESHOLD) {
+      // Initialize incremental calculator if needed
+      initializeIncrementalMetrics(employees, projects, filteredAssignments)
+      return getIncrementalMetrics()
+    } else {
+      // Use regular calculation for small datasets
+      return calculateMetrics(employees, projects, filteredAssignments)
+    }
   }, [employees, projects, filteredAssignments])
 
   const handleOvertimeClick = () => {
@@ -136,7 +147,7 @@ export const MetricsBar = React.memo(function MetricsBar() {
             </div>
             <div>
               <div className="text-2xl font-bold text-green-900">
-                {metrics.skillsMatching}
+                {(metrics as any).skillsMatching || 0}
               </div>
               <div className="text-sm text-green-700 font-medium">Skills Matching</div>
             </div>
