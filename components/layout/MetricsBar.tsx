@@ -27,12 +27,12 @@ export function MetricsBar() {
     if (!dateRange) return assignments
     
     // Ensure dates are Date objects (they might be strings from localStorage)
-    const filterStart = dateRange.startDate instanceof Date 
-      ? dateRange.startDate 
-      : new Date(dateRange.startDate)
-    const filterEnd = dateRange.endDate instanceof Date
-      ? dateRange.endDate
-      : new Date(dateRange.endDate)
+    const filterStart = dateRange.start instanceof Date 
+      ? dateRange.start 
+      : new Date(dateRange.start)
+    const filterEnd = dateRange.end instanceof Date
+      ? dateRange.end
+      : new Date(dateRange.end)
     
     return assignments.filter(assignment => {
       // Parse the week or date to a Date object

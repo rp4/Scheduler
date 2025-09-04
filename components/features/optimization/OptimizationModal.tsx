@@ -70,8 +70,8 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
         setIsOptimizing(false)
         setShowResults(true)
       }, 500)
-    } catch (error) {
-      console.error('Optimization failed:', error)
+    } catch {
+      // Optimization error handled silently
       setIsOptimizing(false)
     }
   }

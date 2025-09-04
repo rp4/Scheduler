@@ -9,8 +9,8 @@ export async function loadSampleData(): Promise<ScheduleData> {
     employees: [
       {
         id: 'E001',
-        name: 'John Smith',
-        email: 'john@example.com',
+        name: 'Employee 1',
+        email: 'employee1@example.com',
         maxHours: 40,
         team: 'Development',
         skills: {
@@ -22,8 +22,8 @@ export async function loadSampleData(): Promise<ScheduleData> {
       },
       {
         id: 'E002',
-        name: 'Jane Doe',
-        email: 'jane@example.com',
+        name: 'Employee 2',
+        email: 'employee2@example.com',
         maxHours: 40,
         team: 'Development',
         skills: {
@@ -35,8 +35,8 @@ export async function loadSampleData(): Promise<ScheduleData> {
       },
       {
         id: 'E003',
-        name: 'Bob Wilson',
-        email: 'bob@example.com',
+        name: 'Employee 3',
+        email: 'employee3@example.com',
         maxHours: 35,
         team: 'Design',
         skills: {
@@ -48,8 +48,8 @@ export async function loadSampleData(): Promise<ScheduleData> {
       },
       {
         id: 'E004',
-        name: 'Alice Johnson',
-        email: 'alice@example.com',
+        name: 'Employee 4',
+        email: 'employee4@example.com',
         maxHours: 40,
         team: 'QA',
         skills: {
@@ -61,8 +61,8 @@ export async function loadSampleData(): Promise<ScheduleData> {
       },
       {
         id: 'E005',
-        name: 'Charlie Brown',
-        email: 'charlie@example.com',
+        name: 'Employee 5',
+        email: 'employee5@example.com',
         maxHours: 40,
         team: 'Development',
         skills: {

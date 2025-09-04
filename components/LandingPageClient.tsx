@@ -18,9 +18,9 @@ export function LandingPageClient() {
 
     const processFile = async () => {
       try {
-        console.log('Starting to parse Excel file...')
+        console.log('Starting to parse file:', fileToProcess.name)
         const data = await parseExcelFile(fileToProcess)
-        console.log('Excel parsed successfully, data:', data)
+        console.log('Parsed data:', data)
         
         // Validate data has content
         if (!data.employees?.length && !data.projects?.length && !data.assignments?.length) {
@@ -28,16 +28,15 @@ export function LandingPageClient() {
         }
         
         loadData(data)
-        console.log('Data loaded to store')
+        console.log('Data loaded to store, navigating...')
         
         // Add small delay to ensure state is saved
         setTimeout(() => {
-          console.log('Navigating to /schedule...')
           window.location.href = '/schedule'
         }, 100)
         // Don't reset loading state here since we're navigating away
       } catch (error) {
-        console.error('Failed to parse Excel file:', error)
+        console.error('Error processing file:', error)
         const errorMessage = error instanceof Error ? error.message : 'Please check the file format and try again.'
         showToast('error', 'Failed to parse Excel file', errorMessage)
         setIsLoading(false) // Only reset on error
@@ -50,13 +49,12 @@ export function LandingPageClient() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
+    console.log('File selected:', file)
     if (!file) {
       console.log('No file selected')
       return
     }
 
-    console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type)
-    
     // Validate file type
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
       showToast('error', 'Invalid file type', 'Please select an Excel file (.xlsx or .xls)')
@@ -64,6 +62,15 @@ export function LandingPageClient() {
       return
     }
     
+    // Validate file size (max 10MB)
+    const maxSizeInBytes = 10 * 1024 * 1024 // 10MB
+    if (file.size > maxSizeInBytes) {
+      showToast('error', 'File too large', `Please select a file smaller than 10MB (current: ${(file.size / (1024 * 1024)).toFixed(2)}MB)`)
+      event.target.value = '' // Reset input
+      return
+    }
+    
+    console.log('Setting loading state and file to process')
     setIsLoading(true)
     setFileToProcess(file)
     
@@ -79,8 +86,7 @@ export function LandingPageClient() {
       // Keep loading state during navigation
       window.location.href = '/schedule'
       // Don't reset loading state here since we're navigating away
-    } catch (error) {
-      console.error('Failed to load sample data:', error)
+    } catch {
       setIsLoading(false) // Only reset on error
     }
   }

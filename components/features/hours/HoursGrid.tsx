@@ -3,12 +3,11 @@
 import React from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { Users, Briefcase, ChevronDown, ChevronRight, Plus, ArrowRight } from 'lucide-react'
+import { Users, ChevronDown, ChevronRight, Plus, ArrowRight } from 'lucide-react'
 import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, getMonth, getYear } from 'date-fns'
 import { generateId } from '@/lib/utils'
 import { Project } from '@/types/schedule'
-
-type ViewMode = 'employee' | 'project'
+import { ViewModeToggle, type ViewMode } from '@/components/ui/ViewModeToggle'
 
 export function HoursGrid() {
   const [viewMode, setViewMode] = useState<ViewMode>('employee')
@@ -49,7 +48,7 @@ export function HoursGrid() {
     console.log('  projects.length:', projects.length)
     
     if (dateRangeFilter) {
-      console.log('  Using dateRangeFilter:', dateRangeFilter.startDate, '-', dateRangeFilter.endDate)
+      console.log('  Using dateRangeFilter:', dateRangeFilter.start, '-', dateRangeFilter.end)
       
       // Parse dates properly to avoid timezone issues
       const parseFilterDate = (dateValue: any): Date => {
@@ -75,8 +74,8 @@ export function HoursGrid() {
         return new Date(dateValue)
       }
       
-      const start = parseFilterDate(dateRangeFilter.startDate)
-      const end = parseFilterDate(dateRangeFilter.endDate)
+      const start = parseFilterDate(dateRangeFilter.start)
+      const end = parseFilterDate(dateRangeFilter.end)
       
       // Check if the earliest date is a Monday
       const startDay = start.getDay()
@@ -1262,41 +1261,17 @@ export function HoursGrid() {
     <div>
       {/* View Toggle and Controls */}
       <div className="flex justify-between items-center mb-6">
-        <div className="flex bg-gray-50 rounded-lg p-1">
-          <button
-            onClick={() => {
-              setViewMode('employee')
-              hasScrolledToCurrentWeek.current = false // Reset scroll flag when changing views
-            }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all duration-200 ${
-              viewMode === 'employee'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            By Employee
-          </button>
-          <button
-            onClick={() => {
-              setViewMode('project')
-              hasScrolledToCurrentWeek.current = false // Reset scroll flag when changing views
-            }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all duration-200 ${
-              viewMode === 'project'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Briefcase className="w-4 h-4" />
-            By Project
-          </button>
-        </div>
+        <ViewModeToggle 
+          viewMode={viewMode} 
+          onViewModeChange={(mode) => {
+            setViewMode(mode)
+            hasScrolledToCurrentWeek.current = false // Reset scroll flag when changing views
+          }}
+        />
         
         {/* Week Information */}
         <div className="text-sm text-gray-600">
-          Showing {weeks.length} weeks ({format(weeks[0], 'MMM yyyy')} - {format(weeks[weeks.length - 1], 'MMM yyyy')})
-          {assignments.length > 0 && ` • ${assignments.length} assignments`}
+          {format(weeks[0], 'MMM yyyy')} - {format(weeks[weeks.length - 1], 'MMM yyyy')} ({weeks.length} weeks)
         </div>
       </div>
 

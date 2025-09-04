@@ -1,11 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { ScheduleData, Employee, Project, Assignment } from '@/types/schedule'
-
-interface DateRange {
-  startDate: Date
-  endDate: Date
-}
+import type { ScheduleData, Employee, Project, Assignment, DateRange } from '@/types/schedule'
 
 interface ScheduleState extends ScheduleData {
   selectedTeam: string
@@ -49,18 +44,6 @@ export const useScheduleStore = create<ScheduleState>()(
       utilizationSortTrigger: 0,
 
       loadData: (data) => {
-        console.log('📦 Storing data in Zustand:', {
-          employees: data.employees.length,
-          projects: data.projects.length,
-          assignments: data.assignments.length,
-          sampleAssignment: data.assignments[0],
-          assignmentStructure: data.assignments.slice(0, 3).map(a => ({
-            employeeId: a.employeeId,
-            projectId: a.projectId,
-            week: a.week,
-            hours: a.hours
-          }))
-        })
         
         return set(() => ({
           ...data,
@@ -266,8 +249,8 @@ export const useScheduleStore = create<ScheduleState>()(
         // Convert date strings back to Date objects after rehydration
         if (state?.dateRange) {
           state.dateRange = {
-            startDate: parseLocalDate(state.dateRange.startDate),
-            endDate: parseLocalDate(state.dateRange.endDate)
+            start: parseLocalDate(state.dateRange.start),
+            end: parseLocalDate(state.dateRange.end)
           }
         }
         

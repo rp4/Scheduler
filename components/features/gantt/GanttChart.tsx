@@ -38,12 +38,12 @@ export function GanttChart() {
       return viewMode === 'week' ? 60 : viewMode === 'month' ? 120 : 200
     }
     
-    const filterStart = dateRangeFilter.startDate instanceof Date 
-      ? dateRangeFilter.startDate 
-      : new Date(dateRangeFilter.startDate)
-    const filterEnd = dateRangeFilter.endDate instanceof Date
-      ? dateRangeFilter.endDate
-      : new Date(dateRangeFilter.endDate)
+    const filterStart = dateRangeFilter.start instanceof Date 
+      ? dateRangeFilter.start 
+      : new Date(dateRangeFilter.start)
+    const filterEnd = dateRangeFilter.end instanceof Date
+      ? dateRangeFilter.end
+      : new Date(dateRangeFilter.end)
     
     // Calculate span in days
     const spanInDays = Math.ceil((filterEnd.getTime() - filterStart.getTime()) / (1000 * 60 * 60 * 24))
@@ -99,12 +99,12 @@ export function GanttChart() {
     // Filter by date range if specified
     if (dateRangeFilter) {
       // Ensure dates are Date objects (they might be strings from localStorage)
-      const filterStart = dateRangeFilter.startDate instanceof Date 
-        ? dateRangeFilter.startDate 
-        : new Date(dateRangeFilter.startDate)
-      const filterEnd = dateRangeFilter.endDate instanceof Date
-        ? dateRangeFilter.endDate
-        : new Date(dateRangeFilter.endDate)
+      const filterStart = dateRangeFilter.start instanceof Date 
+        ? dateRangeFilter.start 
+        : new Date(dateRangeFilter.start)
+      const filterEnd = dateRangeFilter.end instanceof Date
+        ? dateRangeFilter.end
+        : new Date(dateRangeFilter.end)
         
       filtered = filtered.filter(project => {
         const projectStart = new Date(project.startDate)
@@ -144,12 +144,12 @@ export function GanttChart() {
     
     // Add invisible boundary markers if date range filter is active
     if (dateRangeFilter) {
-      const filterStart = dateRangeFilter.startDate instanceof Date 
-        ? dateRangeFilter.startDate 
-        : new Date(dateRangeFilter.startDate)
-      const filterEnd = dateRangeFilter.endDate instanceof Date
-        ? dateRangeFilter.endDate
-        : new Date(dateRangeFilter.endDate)
+      const filterStart = dateRangeFilter.start instanceof Date 
+        ? dateRangeFilter.start 
+        : new Date(dateRangeFilter.start)
+      const filterEnd = dateRangeFilter.end instanceof Date
+        ? dateRangeFilter.end
+        : new Date(dateRangeFilter.end)
       
       // Add boundary markers to constrain the view
       const boundaryTasks: Task[] = [
@@ -264,7 +264,7 @@ export function GanttChart() {
           if (scrollableElement) {
             // Calculate position to center on current date
             // The Gantt library should handle this with viewDate prop
-            console.log('Gantt chart centered on current week')
+            // Gantt chart centered on current week
           }
         }
       }, 200)
