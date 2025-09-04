@@ -26,6 +26,7 @@ export function LandingPageClient() {
         setParseProgress(0)
         
         const data = await parseExcelSafe(fileToProcess, (progress) => {
+          console.log('Progress callback:', progress)
           setParseProgress(progress)
         })
         console.log('Parsed data:', data)
