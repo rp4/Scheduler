@@ -31,6 +31,7 @@ export const HoursGrid = React.memo(function HoursGrid() {
   const updateAssignment = useScheduleStore((state) => state.updateAssignment)
   const addAssignment = useScheduleStore((state) => state.addAssignment)
   const removeAssignment = useScheduleStore((state) => state.removeAssignment)
+  const hasHydrated = useScheduleStore((state) => state.hasHydrated)
 
   // Format week for display and storage
   const formatWeek = (date: Date) => {
@@ -1239,6 +1240,18 @@ export const HoursGrid = React.memo(function HoursGrid() {
             })}
           </tbody>
         </table>
+      </div>
+    )
+  }
+
+  // Show loading state until hydrated
+  if (!hasHydrated) {
+    return (
+      <div className="text-center py-16">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full mb-4 shadow-inner">
+          <Users className="w-8 h-8 text-gray-500 animate-pulse" />
+        </div>
+        <h3 className="text-subheading mb-2">Loading...</h3>
       </div>
     )
   }
