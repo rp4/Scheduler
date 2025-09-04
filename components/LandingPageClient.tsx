@@ -7,6 +7,7 @@ import { parseExcelSafe } from '@/lib/excel/parserWithWorker'
 import { loadSampleData } from '@/lib/sample-data'
 import { showToast } from '@/components/ui/Toast'
 import { ProgressBar } from '@/components/ui/ProgressBar'
+import { PrivacyNotice } from '@/components/ui/PrivacyNotice'
 
 export function LandingPageClient() {
   const [isLoading, setIsLoading] = useState(false)
@@ -160,6 +161,7 @@ export function LandingPageClient() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <PrivacyNotice />
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto">
           {/* Header */}

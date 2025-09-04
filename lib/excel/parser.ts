@@ -128,7 +128,7 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
       // Pivot format: Each row is employee-project, columns are week dates
       result.assignments = []
       
-      sheet.forEach((row: any, rowIndex: number) => {
+      sheet.forEach((row: any, _rowIndex: number) => {
         const employeeIdOrName = row.Employee || row['Employee'] || row['Employee ID'] || ''
         const projectIdOrName = row.Project || row['Project'] || row['Project ID'] || ''
         
@@ -176,7 +176,7 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
       })
     } else {
       // Traditional format: Each row is one assignment
-      result.assignments = sheet.map((row: any, index: number) => {
+      result.assignments = sheet.map((row: any, _index: number) => {
         // Check all possible column names for week/date
         const rawDate = row.Week || row['Week'] || row.Date || row['Date'] || row.week || row.date
         const { date, week } = normalizeDateToMonday(rawDate)

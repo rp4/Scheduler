@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import { ScheduleData, Assignment, ProficiencyLevel, Employee, Project } from '@/types/schedule'
+import { ScheduleData, Assignment, ProficiencyLevel } from '@/types/schedule'
 
 // Generate unique ID
 function generateId(): string {
