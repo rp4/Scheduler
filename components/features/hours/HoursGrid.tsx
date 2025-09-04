@@ -8,6 +8,10 @@ import { format, startOfWeek, addWeeks, startOfYear, endOfYear, endOfWeek, getMo
 import { generateId } from '@/lib/utils'
 import { Project } from '@/types/schedule'
 import { ViewModeToggle, type ViewMode } from '@/components/ui/ViewModeToggle'
+import { VirtualizedHoursGrid } from './VirtualizedHoursGrid'
+
+// Threshold for enabling virtual scrolling
+const VIRTUAL_SCROLL_THRESHOLD = 100 // Enable virtual scrolling if more than 100 rows
 
 // Memoized component to prevent unnecessary re-renders
 export const HoursGrid = React.memo(function HoursGrid() {
@@ -1258,6 +1262,42 @@ export const HoursGrid = React.memo(function HoursGrid() {
     )
   }
 
+  // Determine if we should use virtual scrolling
+  const rowCount = viewMode === 'employee' ? filteredData.employees.length : filteredData.projects.length
+  const useVirtualScrolling = rowCount > VIRTUAL_SCROLL_THRESHOLD
+
+  // If using virtual scrolling, render the virtualized component
+  if (useVirtualScrolling) {
+    return (
+      <div>
+        {/* View Toggle and Controls */}
+        <div className="flex justify-between items-center mb-6">
+          <ViewModeToggle 
+            viewMode={viewMode} 
+            onViewModeChange={(mode) => {
+              setViewMode(mode)
+              hasScrolledToCurrentWeek.current = false // Reset scroll flag when changing views
+            }}
+          />
+          
+          {/* Week Information */}
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-gray-600">
+              {format(weeks[0], 'MMM yyyy')} - {format(weeks[weeks.length - 1], 'MMM yyyy')} ({weeks.length} weeks)
+            </div>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+              Virtual Scrolling Enabled ({rowCount} rows)
+            </span>
+          </div>
+        </div>
+        
+        {/* Virtual Grid Content */}
+        <VirtualizedHoursGrid weeks={weeks} viewMode={viewMode} />
+      </div>
+    )
+  }
+
+  // Otherwise, use the standard rendering
   return (
     <div>
       {/* View Toggle and Controls */}

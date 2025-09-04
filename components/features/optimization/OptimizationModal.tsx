@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from 'react'
 import { X, Brain, Settings, Play, Check, AlertCircle } from 'lucide-react'
 import { useScheduleStore } from '@/store/useScheduleStore'
-import { optimizeSchedule, OptimizationResult } from '@/lib/optimization/optimizer'
+import { OptimizationResult } from '@/lib/optimization/optimizer'
+import { optimizeScheduleSafe } from '@/lib/optimization/optimizerWithWorker'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import * as Slider from '@radix-ui/react-slider'
 
@@ -56,7 +57,7 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
 
     try {
       // Run optimization
-      const result = await optimizeSchedule(
+      const result = await optimizeScheduleSafe(
         scheduleData,
         algorithm,
         normalizedWeights,
