@@ -171,7 +171,7 @@ export async function optimizeSchedule(
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+/* Unused - kept for future enhancement
 function _redistributeHours(data: ScheduleData): Assignment[] {
   const { employees, assignments } = data
   const newAssignments: Assignment[] = []
@@ -207,11 +207,9 @@ function _redistributeHours(data: ScheduleData): Assignment[] {
 
   return newAssignments
 }
+*/
 
-/**
- * Optimized score calculation using pre-computed skill matrix and efficient utilization
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+/* Unused - optimized score calculation for future use
 function _calculateScoreOptimized(
   assignments: Assignment[],
   data: ScheduleData,
@@ -256,11 +254,6 @@ function _calculateScoreOptimized(
   return overtimeScore + utilizationScore + skillsScore
 }
 
-
-/**
- * Legacy score calculation using new optimized utilization
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _calculateScore(
   assignments: Assignment[],
   data: ScheduleData,
@@ -295,27 +288,41 @@ function _calculateScore(
 
   return overtimeScore + utilizationScore + skillsScore
 }
-
+*/
 
 // Helper functions for optimization
 function calculateTotalOvertime(employees: Employee[], assignments: Assignment[]): number {
-  const employeeHours = new Map<string, number>()
+  // Calculate overtime per time period (week), not across all weeks
+  // Structure: employeeId -> timeperiod -> hours
+  const employeeHoursByPeriod = new Map<string, Map<string, number>>()
   
   assignments.forEach(a => {
     if (a.employeeId && 
         a.employeeId !== 'Placeholder' && 
         a.employeeId !== 'placeholder' &&
         !a.employeeId.startsWith('Placeholder ')) {
-      const current = employeeHours.get(a.employeeId) || 0
-      employeeHours.set(a.employeeId, current + a.hours)
+      const period = a.date || a.week
+      
+      if (!employeeHoursByPeriod.has(a.employeeId)) {
+        employeeHoursByPeriod.set(a.employeeId, new Map())
+      }
+      
+      const periodMap = employeeHoursByPeriod.get(a.employeeId)!
+      const currentHours = periodMap.get(period) || 0
+      periodMap.set(period, currentHours + a.hours)
     }
   })
   
   let totalOvertime = 0
   employees.forEach(employee => {
-    const hours = employeeHours.get(employee.id) || 0
-    if (hours > employee.maxHours) {
-      totalOvertime += hours - employee.maxHours
+    const periodHours = employeeHoursByPeriod.get(employee.id)
+    if (periodHours) {
+      // Check each period separately
+      periodHours.forEach((hours) => {
+        if (hours > employee.maxHours) {
+          totalOvertime += hours - employee.maxHours
+        }
+      })
     }
   })
   

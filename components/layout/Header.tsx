@@ -27,8 +27,7 @@ export function Header() {
   const handleExport = async () => {
     try {
       await exportToExcel(scheduleData)
-    } catch (error) {
-      console.error('Export failed:', error)
+    } catch {
       showToast('error', 'Export failed', 'Unable to export Excel file. Please try again.')
     }
   }

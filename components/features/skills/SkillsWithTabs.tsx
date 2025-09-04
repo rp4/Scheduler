@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { SkillsMatrix } from './SkillsMatrix'
 import { SkillsByProject } from './SkillsByProject'
+import { ViewModeToggle, type ViewMode } from '@/components/ui/ViewModeToggle'
 
 export function SkillsWithTabs() {
-  const [activeTab, setActiveTab] = useState<'employee' | 'project'>('employee')
+  const [activeTab, setActiveTab] = useState<ViewMode>('employee')
 
   // Read subview from URL on mount and when hash changes
   useEffect(() => {
@@ -29,7 +30,7 @@ export function SkillsWithTabs() {
     return () => window.removeEventListener('hashchange', checkHash)
   }, [])
 
-  const handleTabChange = (tab: 'employee' | 'project') => {
+  const handleTabChange = (tab: ViewMode) => {
     setActiveTab(tab)
     
     // Update URL to reflect the subview
@@ -42,27 +43,8 @@ export function SkillsWithTabs() {
   return (
     <div className="flex flex-col h-full">
       {/* Tab buttons */}
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => handleTabChange('employee')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === 'employee'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          By Employee
-        </button>
-        <button
-          onClick={() => handleTabChange('project')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === 'project'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          By Project
-        </button>
+      <div className="mb-4">
+        <ViewModeToggle viewMode={activeTab} onViewModeChange={handleTabChange} />
       </div>
 
       {/* Tab content */}

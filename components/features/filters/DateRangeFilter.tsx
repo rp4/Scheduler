@@ -83,8 +83,8 @@ export function DateRangeFilter() {
     if (!dateRange && projects.length > 0) {
       // Set the default range
       setDateRange({
-        startDate: defaultRange.start,
-        endDate: defaultRange.end
+        start: defaultRange.start,
+        end: defaultRange.end
       })
     }
   }, [projects.length])
@@ -92,8 +92,8 @@ export function DateRangeFilter() {
   useEffect(() => {
     if (dateRange) {
       // Ensure dates are Date objects (they might be strings from localStorage)
-      const start = dateRange.startDate instanceof Date ? dateRange.startDate : new Date(dateRange.startDate)
-      const end = dateRange.endDate instanceof Date ? dateRange.endDate : new Date(dateRange.endDate)
+      const start = dateRange.start instanceof Date ? dateRange.start : new Date(dateRange.start)
+      const end = dateRange.end instanceof Date ? dateRange.end : new Date(dateRange.end)
       setStartDate(format(start, 'yyyy-MM-dd'))
       setEndDate(format(end, 'yyyy-MM-dd'))
     } else if (projects.length > 0) {
@@ -111,8 +111,8 @@ export function DateRangeFilter() {
       const [startYear, startMonth, startDay] = newStartDate.split('-').map(Number)
       const [endYear, endMonth, endDay] = endDate.split('-').map(Number)
       setDateRange({
-        startDate: new Date(startYear, startMonth - 1, startDay),
-        endDate: new Date(endYear, endMonth - 1, endDay)
+        start: new Date(startYear, startMonth - 1, startDay),
+        end: new Date(endYear, endMonth - 1, endDay)
       })
     }
   }
@@ -126,8 +126,8 @@ export function DateRangeFilter() {
       const [startYear, startMonth, startDay] = startDate.split('-').map(Number)
       const [endYear, endMonth, endDay] = newEndDate.split('-').map(Number)
       setDateRange({
-        startDate: new Date(startYear, startMonth - 1, startDay),
-        endDate: new Date(endYear, endMonth - 1, endDay)
+        start: new Date(startYear, startMonth - 1, startDay),
+        end: new Date(endYear, endMonth - 1, endDay)
       })
     }
   }
