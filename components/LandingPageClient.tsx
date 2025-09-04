@@ -64,6 +64,12 @@ export function LandingPageClient() {
       console.log('No file selected')
       return
     }
+    
+    console.log('File details:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    })
 
     // Validate file type
     if (!file.name.match(/\.(xlsx|xls)$/i)) {

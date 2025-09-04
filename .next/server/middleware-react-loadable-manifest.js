@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST="{\"lib/excel/parserWithWorker.ts -> ./parser\":{\"id\":\"lib/excel/parserWithWorker.ts -> ./parser\",\"files\":[\"static/chunks/vendor.js\",\"static/chunks/_app-pages-browser_lib_excel_parser_ts.js\"]}}"
