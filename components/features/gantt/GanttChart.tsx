@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { Gantt, Task, ViewMode } from 'gantt-task-react'
@@ -10,7 +11,8 @@ import "gantt-task-react/dist/index.css"
 
 type GanttViewMode = 'week' | 'month' | 'year'
 
-export function GanttChart() {
+// Memoized component to prevent unnecessary re-renders
+export const GanttChart = React.memo(function GanttChart() {
   const projects = useScheduleStore((state) => state.projects)
   const assignments = useScheduleStore((state) => state.assignments)
   const employees = useScheduleStore((state) => state.employees)
@@ -517,4 +519,4 @@ export function GanttChart() {
       />
     </div>
   )
-}
+})

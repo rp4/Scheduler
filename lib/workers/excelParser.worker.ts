@@ -1,79 +1,79 @@
 import * as XLSX from 'xlsx'
-import { ScheduleData, Assignment, ProficiencyLevel } from '@/types/schedule'
-import { generateId } from '@/lib/utils'
-import { normalizeDateToWeek, parseFlexibleDate } from '@/lib/date-utils'
-import { validateExcelData } from './validator'
+import { ScheduleData, Assignment, ProficiencyLevel, Employee, Project } from '@/types/schedule'
 
-// Wrapper function for backward compatibility
-function normalizeDateToMonday(dateValue: any): { date: string, week: string } {
-  return normalizeDateToWeek(dateValue)
+// Generate unique ID
+function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
-export async function parseExcelFile(file: File): Promise<ScheduleData> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    
-    reader.onload = (e) => {
-      try {
-        // Only log essential info for debugging
-        const DEBUG = false // Set to true for detailed logging
-        if (DEBUG) {
-          console.log('📊 Starting Excel parsing...', { fileSize: file.size })
-        }
-        
-        if (!e.target?.result) {
-          throw new Error('Failed to read file content')
-        }
-        
-        const data = new Uint8Array(e.target.result as ArrayBuffer)
-        const workbook = XLSX.read(data, { type: 'array', cellDates: true })
-        
-        if (!workbook.Sheets || Object.keys(workbook.Sheets).length === 0) {
-          throw new Error('No sheets found in the Excel file')
-        }
-        
-        const result = parseWorkbook(workbook)
-        // Only log summary on success
-        console.log(`✅ Excel parsed: ${result.employees.length} employees, ${result.projects.length} projects, ${result.assignments.length} assignments`)
-        
-        // Validate the parsed data
-        const validation = validateExcelData({
-          employees: result.employees,
-          projects: result.projects,
-          assignments: result.assignments
-        })
-        
-        if (!validation.isValid) {
-          const errorMessage = 'Excel validation failed:\n' + validation.errors.join('\n')
-          throw new Error(errorMessage)
-        }
-        
-        // Log warnings if any
-        if (validation.warnings.length > 0) {
-          console.warn('⚠️ Excel validation warnings:', validation.warnings)
-        }
-        
-        resolve(result)
-      } catch (error) {
-        console.error('❌ Error parsing Excel:', error)
-        if (error instanceof Error) {
-          reject(error)
-        } else {
-          reject(new Error('Unknown error occurred while parsing Excel file'))
+// Parse date from various formats
+function parseDate(value: any): Date | null {
+  if (!value) return null
+  
+  if (value instanceof Date) return value
+  
+  if (typeof value === 'number') {
+    // Excel date number
+    return new Date((value - 25569) * 86400 * 1000)
+  }
+  
+  if (typeof value === 'string') {
+    const date = new Date(value)
+    return isNaN(date.getTime()) ? null : date
+  }
+  
+  return null
+}
+
+// Normalize date to Monday of the week
+function normalizeDateToMonday(dateValue: any): { date: string, week: string } {
+  const parsed = parseDate(dateValue)
+  if (!parsed) {
+    const now = new Date()
+    return {
+      date: now.toISOString().split('T')[0],
+      week: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
+    }
+  }
+  
+  // Get Monday of the week
+  const day = parsed.getDay()
+  const diff = parsed.getDate() - day + (day === 0 ? -6 : 1)
+  const monday = new Date(parsed.setDate(diff))
+  
+  return {
+    date: monday.toISOString().split('T')[0],
+    week: monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
+  }
+}
+
+// Parse skills from row data
+function parseSkills(row: any): Record<string, ProficiencyLevel> {
+  const skills: Record<string, ProficiencyLevel> = {}
+  const excludeFields = ['Name', 'Employee', 'Email', 'ID', 'id', 'Max Hours', 'Team']
+  
+  Object.keys(row).forEach(key => {
+    if (!excludeFields.includes(key)) {
+      const value = row[key]
+      if (value && value !== 'None' && value !== '') {
+        if (['Beginner', 'Intermediate', 'Expert'].includes(value)) {
+          skills[key] = value as ProficiencyLevel
+        } else if (typeof value === 'number') {
+          if (value >= 3) skills[key] = 'Expert'
+          else if (value >= 2) skills[key] = 'Intermediate'
+          else if (value >= 1) skills[key] = 'Beginner'
+        } else if (value) {
+          skills[key] = 'Intermediate'
         }
       }
     }
-    
-    reader.onerror = (error) => {
-      console.error('❌ FileReader error:', error)
-      reject(new Error('Failed to read file. Please try again.'))
-    }
-    
-    reader.readAsArrayBuffer(file)
   })
+  
+  return skills
 }
 
-function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
+// Main parsing function
+function parseWorkbook(workbook: XLSX.WorkBook, onProgress: (progress: number) => void): ScheduleData {
   const result: ScheduleData = {
     employees: [],
     projects: [],
@@ -81,6 +81,9 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
     skills: [],
     teams: ['All Teams'],
   }
+
+  let progress = 0
+  onProgress(10)
 
   // Parse Employees sheet
   if (workbook.Sheets['Employees']) {
@@ -93,6 +96,8 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
       team: row.Team || 'Default',
       skills: parseSkills(row),
     }))
+    progress = 30
+    onProgress(progress)
   }
 
   // Parse Projects sheet
@@ -101,127 +106,121 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
     result.projects = sheet.map((row: any) => ({
       id: row.ID || row.id || generateId(),
       name: row.Name || row.Project || '',
-      startDate: parseFlexibleDate(row['Start Date']) || new Date(),
-      endDate: parseFlexibleDate(row['End Date']) || new Date(),
+      startDate: parseDate(row['Start Date']) || new Date(),
+      endDate: parseDate(row['End Date']) || new Date(),
       requiredSkills: row['Required Skills'] 
         ? String(row['Required Skills']).split(',').map(s => s.trim())
         : [],
       portfolio: row.Portfolio || '',
     }))
+    progress = 50
+    onProgress(progress)
   }
 
-  // Parse Assignments sheet
+  // Parse Assignments sheet - the most time-consuming part
   if (workbook.Sheets['Assignments']) {
     const sheet = XLSX.utils.sheet_to_json(workbook.Sheets['Assignments'])
+    const totalRows = sheet.length
     
-    // Check if this is pivot-style format (columns are dates)
+    // Check for pivot format
     const firstRow = sheet[0] || {}
     const columns = Object.keys(firstRow)
     const dateColumns = columns.filter(col => {
-      // Check if column name looks like a date
       return /^\d{4}-\d{2}-\d{2}/.test(col) || 
              /^\d{1,2}\/\d{1,2}\/\d{4}/.test(col) ||
              /^[A-Z][a-z]{2}\s+\d{1,2}/.test(col)
     })
     
     if (dateColumns.length > 0) {
-      // Pivot format: Each row is employee-project, columns are week dates
+      // Pivot format
       result.assignments = []
+      let processedRows = 0
       
-      sheet.forEach((row: any, rowIndex: number) => {
+      sheet.forEach((row: any) => {
         const employeeIdOrName = row.Employee || row['Employee'] || row['Employee ID'] || ''
         const projectIdOrName = row.Project || row['Project'] || row['Project ID'] || ''
         
-        if (!employeeIdOrName || !projectIdOrName) {
-          // Skip invalid rows silently
-          return
-        }
+        if (!employeeIdOrName || !projectIdOrName) return
         
-        // Try to find employee by ID first, then by name
         let employeeId = employeeIdOrName
         const employeeById = result.employees.find(e => e.id === employeeIdOrName)
         const employeeByName = result.employees.find(e => e.name === employeeIdOrName)
-        
         if (!employeeById && employeeByName) {
           employeeId = employeeByName.id
         }
         
-        // Try to find project by ID first, then by name
         let projectId = projectIdOrName
         const projectById = result.projects.find(p => p.id === projectIdOrName)
         const projectByName = result.projects.find(p => p.name === projectIdOrName)
-        
         if (!projectById && projectByName) {
           projectId = projectByName.id
         }
         
-        // Process each date column
         dateColumns.forEach(dateCol => {
           const hours = row[dateCol]
           if (hours && Number(hours) > 0) {
             const { date, week } = normalizeDateToMonday(dateCol)
-            
-            const assignment: Assignment = {
+            result.assignments.push({
               id: generateId(),
               employeeId: employeeId,
               projectId: projectId,
               hours: Number(hours),
               week: week,
               date: date
-            }
-            
-            result.assignments.push(assignment)
+            })
           }
         })
+        
+        processedRows++
+        if (processedRows % 10 === 0) {
+          const assignmentProgress = 50 + (processedRows / totalRows) * 40
+          onProgress(Math.min(90, assignmentProgress))
+        }
       })
     } else {
-      // Traditional format: Each row is one assignment
+      // Traditional format
       result.assignments = sheet.map((row: any, index: number) => {
-        // Check all possible column names for week/date
         const rawDate = row.Week || row['Week'] || row.Date || row['Date'] || row.week || row.date
         const { date, week } = normalizeDateToMonday(rawDate)
         
-        // Parse hours with better handling
         const rawHours = row.Hours || row['Hours'] || row.hours || 0
         const parsedHours = typeof rawHours === 'string' ? parseFloat(rawHours) || 0 : Number(rawHours) || 0
         
         const employeeIdOrName = row['Employee ID'] || row.Employee || row['Employee'] || row['employee'] || ''
         const projectIdOrName = row['Project ID'] || row.Project || row['Project'] || row['project'] || ''
         
-        // Try to find employee by ID first, then by name
         let employeeId = employeeIdOrName
         const employeeById = result.employees.find(e => e.id === employeeIdOrName)
         const employeeByName = result.employees.find(e => e.name === employeeIdOrName)
-        
         if (!employeeById && employeeByName) {
           employeeId = employeeByName.id
         }
         
-        // Try to find project by ID first, then by name
         let projectId = projectIdOrName
         const projectById = result.projects.find(p => p.id === projectIdOrName)
         const projectByName = result.projects.find(p => p.name === projectIdOrName)
-        
         if (!projectById && projectByName) {
           projectId = projectByName.id
         }
         
-        const assignment: Assignment = {
+        if (index % 50 === 0) {
+          const assignmentProgress = 50 + (index / totalRows) * 40
+          onProgress(Math.min(90, assignmentProgress))
+        }
+        
+        return {
           id: generateId(),
           employeeId: employeeId,
           projectId: projectId,
           hours: parsedHours,
-          week: week,  // Keep for backwards compatibility
-          date: date   // New: Store full date in yyyy-MM-dd format
+          week: week,
+          date: date
         }
-        
-        // Assignment created
-        
-        return assignment
       })
     }
-  } else {
-    // No assignments sheet found
+    
+    progress = 90
+    onProgress(progress)
   }
 
   // Parse Skills sheet (optional)
@@ -254,32 +253,44 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
   })
   result.teams = Array.from(teamSet)
 
+  onProgress(100)
   return result
 }
 
-function parseSkills(row: any): Record<string, ProficiencyLevel> {
-  const skills: Record<string, ProficiencyLevel> = {}
-  const excludeFields = ['Name', 'Employee', 'Email', 'ID', 'id', 'Max Hours', 'Team']
+// Message handler for Web Worker
+self.addEventListener('message', async (event) => {
+  const { type, data } = event.data
   
-  Object.keys(row).forEach(key => {
-    if (!excludeFields.includes(key)) {
-      const value = row[key]
-      if (value && value !== 'None' && value !== '') {
-        // Try to parse as proficiency level
-        if (['Beginner', 'Intermediate', 'Expert'].includes(value)) {
-          skills[key] = value as ProficiencyLevel
-        } else if (typeof value === 'number') {
-          // Convert numeric values to proficiency levels
-          if (value >= 3) skills[key] = 'Expert'
-          else if (value >= 2) skills[key] = 'Intermediate'
-          else if (value >= 1) skills[key] = 'Beginner'
-        } else if (value) {
-          // Default to Intermediate for any other non-empty value
-          skills[key] = 'Intermediate'
-        }
+  if (type === 'parse') {
+    try {
+      const { arrayBuffer } = data
+      
+      // Post initial progress
+      self.postMessage({ type: 'progress', progress: 5 })
+      
+      // Parse the workbook
+      const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true })
+      
+      if (!workbook.Sheets || Object.keys(workbook.Sheets).length === 0) {
+        throw new Error('No sheets found in the Excel file')
       }
+      
+      // Parse with progress updates
+      const result = parseWorkbook(workbook, (progress) => {
+        self.postMessage({ type: 'progress', progress })
+      })
+      
+      // Send success result
+      self.postMessage({ 
+        type: 'success', 
+        data: result 
+      })
+    } catch (error) {
+      // Send error
+      self.postMessage({ 
+        type: 'error', 
+        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      })
     }
-  })
-  
-  return skills
-}
+  }
+})

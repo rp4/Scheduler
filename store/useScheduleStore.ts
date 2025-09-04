@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
+import { persist } from 'zustand/middleware'
+import debounce from 'lodash.debounce'
 import type { ScheduleData, Employee, Project, Assignment, DateRange } from '@/types/schedule'
 
 interface ScheduleState extends ScheduleData {
@@ -31,6 +32,31 @@ const initialState: ScheduleData = {
   assignments: [],
   skills: [],
   teams: ['All Teams'],
+}
+
+// Create a debounced version of localStorage setItem
+const debouncedSetItem = debounce((key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value)
+  } catch (e) {
+    console.error('Failed to save to localStorage:', e)
+  }
+}, 500) // 500ms debounce delay
+
+// Custom storage object with debouncing
+const customStorage = {
+  getItem: (name: string) => {
+    const str = localStorage.getItem(name)
+    if (!str) return null
+    return JSON.parse(str)
+  },
+  setItem: (name: string, value: any) => {
+    // Use debounced version for setting
+    debouncedSetItem(name, JSON.stringify(value))
+  },
+  removeItem: (name: string) => {
+    localStorage.removeItem(name)
+  },
 }
 
 export const useScheduleStore = create<ScheduleState>()(
@@ -223,7 +249,7 @@ export const useScheduleStore = create<ScheduleState>()(
     }),
     {
       name: 'schedule-storage',
-      storage: createJSONStorage(() => localStorage),
+      storage: customStorage, // Use our debounced storage
       partialize: (state) => ({
         employees: state.employees,
         projects: state.projects,
@@ -249,8 +275,8 @@ export const useScheduleStore = create<ScheduleState>()(
         // Convert date strings back to Date objects after rehydration
         if (state?.dateRange) {
           state.dateRange = {
-            start: parseLocalDate(state.dateRange.start),
-            end: parseLocalDate(state.dateRange.end)
+            start: parseLocalDate((state.dateRange as any).start || (state.dateRange as any).startDate),
+            end: parseLocalDate((state.dateRange as any).end || (state.dateRange as any).endDate)
           }
         }
         

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import { X, Brain, Settings, Play, Check, AlertCircle } from 'lucide-react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { optimizeSchedule, OptimizationResult } from '@/lib/optimization/optimizer'
+import { ProgressBar } from '@/components/ui/ProgressBar'
 import * as Slider from '@radix-ui/react-slider'
 
 interface OptimizationModalProps {
@@ -358,20 +359,19 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
             </>
           ) : (
             <div className="py-8">
-              <h3 className="text-center font-semibold mb-4">Optimizing Schedule...</h3>
-              <div className="mb-4">
-                <div className="bg-gray-200 rounded-full h-4 overflow-hidden">
-                  <div
-                    className="bg-blue-600 h-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-              <p className="text-center text-sm text-gray-600">
-                {progress < 30 && 'Analyzing current schedule...'}
-                {progress >= 30 && progress < 60 && 'Generating optimization candidates...'}
-                {progress >= 60 && progress < 90 && 'Evaluating solutions...'}
-                {progress >= 90 && 'Finalizing optimal schedule...'}
+              <h3 className="text-center font-semibold mb-6">Optimizing Schedule...</h3>
+              <ProgressBar 
+                progress={progress}
+                label={
+                  progress < 30 ? 'Analyzing current schedule...' :
+                  progress < 60 ? 'Generating optimization candidates...' :
+                  progress < 90 ? 'Evaluating solutions...' :
+                  'Finalizing optimal schedule...'
+                }
+                className="mb-4"
+              />
+              <p className="text-center text-sm text-gray-500">
+                This may take a few moments for large datasets
               </p>
             </div>
           )}

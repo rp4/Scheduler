@@ -1,13 +1,14 @@
 'use client'
 
+import React, { useMemo } from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { calculateMetrics } from '@/lib/metrics'
 import { Clock, TrendingUp, Target } from 'lucide-react'
-import { useEffect, useState, useMemo } from 'react'
 import { isWithinInterval } from 'date-fns'
 import { useRouter, usePathname } from 'next/navigation'
 
-export function MetricsBar() {
+// Memoized component to prevent unnecessary re-renders
+export const MetricsBar = React.memo(function MetricsBar() {
   const employees = useScheduleStore((state) => state.employees)
   const projects = useScheduleStore((state) => state.projects)
   const assignments = useScheduleStore((state) => state.assignments)
@@ -16,11 +17,6 @@ export function MetricsBar() {
   const setUtilizationSortTrigger = useScheduleStore((state) => state.setUtilizationSortTrigger)
   const router = useRouter()
   const pathname = usePathname()
-  const [metrics, setMetrics] = useState({
-    overtimeHours: 0,
-    resourceUtilization: 0,
-    skillsMatching: 0,
-  })
 
   // Filter assignments based on date range
   const filteredAssignments = useMemo(() => {
@@ -51,9 +47,9 @@ export function MetricsBar() {
     })
   }, [assignments, dateRange])
 
-  useEffect(() => {
-    const calculated = calculateMetrics(employees, projects, filteredAssignments)
-    setMetrics(calculated)
+  // Calculate metrics with memoization to prevent recalculation on every render
+  const metrics = useMemo(() => {
+    return calculateMetrics(employees, projects, filteredAssignments)
   }, [employees, projects, filteredAssignments])
 
   const handleOvertimeClick = () => {
@@ -149,4 +145,4 @@ export function MetricsBar() {
       </div>
     </div>
   )
-}
+})
