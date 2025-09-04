@@ -6,3 +6,17 @@ node_modules/
 *.log
 dist/
 build/
+
+# Next.js build output
+.next/
+out/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+
+# Testing
+coverage/
