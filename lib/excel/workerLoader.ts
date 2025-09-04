@@ -1,9 +1,11 @@
 // Worker loader that works with Next.js
 export function createExcelParserWorker(): Worker | null {
   if (typeof window === 'undefined' || typeof Worker === 'undefined') {
+    console.log('Worker not available: window or Worker undefined')
     return null
   }
   
+  console.log('Creating Excel parser worker...')
   try {
     // Create worker with inline code for Next.js compatibility
     const workerCode = `
@@ -306,7 +308,11 @@ export function createExcelParserWorker(): Worker | null {
     
     const blob = new Blob([workerCode], { type: 'application/javascript' })
     const workerUrl = URL.createObjectURL(blob)
-    return new Worker(workerUrl)
+    console.log('Worker URL created:', workerUrl)
+    
+    const worker = new Worker(workerUrl)
+    console.log('Worker instance created successfully')
+    return worker
   } catch (error) {
     console.error('Failed to create worker:', error)
     return null
