@@ -2,20 +2,37 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X } from 'lucide-react'
+import { X, Plus, Edit2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import type { Project } from '@/types/schedule'
 
-interface EditProjectFormProps {
-  project: Project | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onUpdateProject: (projectId: string, updates: Partial<Project>) => void
+interface ProjectFormProps {
+  mode: 'add' | 'edit'
+  project?: Project | null
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  onSubmit: (projectData: Partial<Project>) => void
+  triggerButton?: React.ReactNode
 }
 
-export function EditProjectForm({ project, open, onOpenChange, onUpdateProject }: EditProjectFormProps) {
+export function ProjectForm({ 
+  mode, 
+  project, 
+  open: controlledOpen, 
+  onOpenChange: controlledOnOpenChange, 
+  onSubmit,
+  triggerButton
+}: ProjectFormProps) {
   const employees = useScheduleStore((state) => state.employees)
+  
+  // Internal state for uncontrolled mode
+  const [internalOpen, setInternalOpen] = useState(false)
+  
+  // Use controlled or uncontrolled mode
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen
+  const setOpen = controlledOnOpenChange || setInternalOpen
+  
   const [name, setName] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -43,21 +60,26 @@ export function EditProjectForm({ project, open, onOpenChange, onUpdateProject }
     setSelectedSkills(newSkills)
   }
 
-  // Update form when project changes
+  // Update form when project changes (edit mode)
   useEffect(() => {
-    if (project) {
+    if (mode === 'edit' && project && isOpen) {
       setName(project.name)
       setStartDate(format(new Date(project.startDate), 'yyyy-MM-dd'))
       setEndDate(format(new Date(project.endDate), 'yyyy-MM-dd'))
       setSelectedSkills(new Set(project.requiredSkills || []))
       setErrors({})
+    } else if (mode === 'add' && isOpen) {
+      // Reset form for add mode when opening
+      setName('')
+      setStartDate('')
+      setEndDate('')
+      setSelectedSkills(new Set())
+      setErrors({})
     }
-  }, [project])
+  }, [project, mode, isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!project) return
     
     const newErrors: Record<string, string> = {}
     
@@ -82,33 +104,72 @@ export function EditProjectForm({ project, open, onOpenChange, onUpdateProject }
       return
     }
     
-    onUpdateProject(project.id, {
+    const projectData: Partial<Project> = {
       name: name.trim(),
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       requiredSkills: Array.from(selectedSkills)
-    })
+    }
     
-    // Close dialog
-    onOpenChange(false)
+    // Add project ID for edit mode
+    if (mode === 'edit' && project) {
+      projectData.id = project.id
+    }
+    
+    onSubmit(projectData)
+    
+    // Reset form and close dialog
+    setName('')
+    setStartDate('')
+    setEndDate('')
+    setSelectedSkills(new Set())
+    setErrors({})
+    setOpen(false)
   }
   
   const handleCancel = () => {
-    setErrors({})
+    setName('')
+    setStartDate('')
+    setEndDate('')
     setSelectedSkills(new Set())
-    onOpenChange(false)
+    setErrors({})
+    setOpen(false)
   }
 
-  if (!project) return null
+  // Default trigger button if not provided
+  const defaultTrigger = mode === 'add' ? (
+    <button
+      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+    >
+      <Plus className="w-4 h-4" />
+      Add Project
+    </button>
+  ) : (
+    <button
+      className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+    >
+      <Edit2 className="w-3 h-3" />
+      Edit
+    </button>
+  )
+
+  // Don't render anything in edit mode if no project
+  if (mode === 'edit' && !project) return null
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={isOpen} onOpenChange={setOpen}>
+      {(mode === 'add' || !controlledOpen) && (
+        <Dialog.Trigger asChild>
+          {triggerButton || defaultTrigger}
+        </Dialog.Trigger>
+      )}
+      
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
         <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
           <div className="flex items-center justify-between mb-4">
             <Dialog.Title className="text-lg font-semibold">
-              Edit Project
+              {mode === 'add' ? 'Add New Project' : 'Edit Project'}
             </Dialog.Title>
             <Dialog.Close asChild>
               <button
@@ -225,7 +286,7 @@ export function EditProjectForm({ project, open, onOpenChange, onUpdateProject }
                 type="submit"
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Save Changes
+                {mode === 'add' ? 'Add Project' : 'Save Changes'}
               </button>
             </div>
           </form>

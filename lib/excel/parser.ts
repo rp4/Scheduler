@@ -1,69 +1,12 @@
 import * as XLSX from 'xlsx'
 import { ScheduleData, Assignment, ProficiencyLevel } from '@/types/schedule'
-import { generateId, parseDate } from '@/lib/utils'
-import { format, parse, isValid, startOfWeek } from 'date-fns'
+import { generateId } from '@/lib/utils'
+import { normalizeDateToWeek, parseFlexibleDate } from '@/lib/date-utils'
+import { validateExcelData } from './validator'
 
-// Function to normalize date to yyyy-MM-dd format (Monday of the week)
+// Wrapper function for backward compatibility
 function normalizeDateToMonday(dateValue: any): { date: string, week: string } {
-  let parsedDate: Date | null = null
-  
-  // Handle Date objects from Excel parsing
-  if (dateValue instanceof Date && isValid(dateValue)) {
-    parsedDate = dateValue
-    console.log(`    📅 Processing Date object: ${format(dateValue, 'yyyy-MM-dd')}`)
-  }
-  // Handle Excel date numbers
-  else if (typeof dateValue === 'number' && dateValue > 0) {
-    parsedDate = new Date((dateValue - 25569) * 86400 * 1000)
-    console.log(`    📅 Excel number ${dateValue} -> ${format(parsedDate, 'yyyy-MM-dd')}`)
-  }
-  // Handle string dates
-  else if (typeof dateValue === 'string') {
-    const dateStr = dateValue.trim()
-    
-    // Priority: yyyy-MM-dd format
-    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
-      const dateOnly = dateStr.split('T')[0]
-      parsedDate = parse(dateOnly, 'yyyy-MM-dd', new Date())
-      if (isValid(parsedDate)) {
-        console.log(`    📅 Parsed yyyy-MM-dd: ${dateOnly}`)
-      }
-    }
-    // Try other formats
-    else {
-      const formats = ['MM/dd/yyyy', 'M/d/yyyy', 'MMM d yyyy', 'd-MMM-yyyy']
-      for (const fmt of formats) {
-        try {
-          const parsed = parse(dateStr, fmt, new Date())
-          if (isValid(parsed)) {
-            parsedDate = parsed
-            console.log(`    📅 Parsed ${fmt}: ${dateStr} -> ${format(parsed, 'yyyy-MM-dd')}`)
-            break
-          }
-        } catch {}
-      }
-    }
-  }
-  
-  // If we couldn't parse, use current date
-  if (!parsedDate || !isValid(parsedDate)) {
-    console.warn(`    ⚠️ Could not parse date: "${dateValue}", using current date`)
-    parsedDate = new Date()
-  }
-  
-  // Convert to Monday of that week
-  const monday = startOfWeek(parsedDate, { weekStartsOn: 1 })
-  const dateFormatted = format(monday, 'yyyy-MM-dd')
-  const weekFormatted = format(monday, 'MMM d').toUpperCase()
-  
-  const dayName = format(parsedDate, 'EEEE')
-  if (parsedDate.getDay() === 1) {
-    console.log(`    ✅ Date is already Monday: ${dateFormatted} -> Week: "${weekFormatted}"`)
-  } else {
-    console.log(`    📅 Converted ${dayName} ${format(parsedDate, 'yyyy-MM-dd')} -> Monday: ${dateFormatted} (Week: "${weekFormatted}")`)
-  }
-  
-  return { date: dateFormatted, week: weekFormatted }
+  return normalizeDateToWeek(dateValue)
 }
 
 export async function parseExcelFile(file: File): Promise<ScheduleData> {
@@ -97,6 +40,24 @@ export async function parseExcelFile(file: File): Promise<ScheduleData> {
           skills: result.skills.length,
           teams: result.teams.length
         })
+        
+        // Validate the parsed data
+        const validation = validateExcelData({
+          employees: result.employees,
+          projects: result.projects,
+          assignments: result.assignments
+        })
+        
+        if (!validation.isValid) {
+          const errorMessage = 'Excel validation failed:\n' + validation.errors.join('\n')
+          throw new Error(errorMessage)
+        }
+        
+        // Log warnings if any
+        if (validation.warnings.length > 0) {
+          console.warn('⚠️ Excel validation warnings:', validation.warnings)
+        }
+        
         resolve(result)
       } catch (error) {
         console.error('❌ Error parsing Excel:', error)
@@ -145,8 +106,8 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
     result.projects = sheet.map((row: any) => ({
       id: row.ID || row.id || generateId(),
       name: row.Name || row.Project || '',
-      startDate: parseDate(row['Start Date']) || new Date(),
-      endDate: parseDate(row['End Date']) || new Date(),
+      startDate: parseFlexibleDate(row['Start Date']) || new Date(),
+      endDate: parseFlexibleDate(row['End Date']) || new Date(),
       requiredSkills: row['Required Skills'] 
         ? String(row['Required Skills']).split(',').map(s => s.trim())
         : [],

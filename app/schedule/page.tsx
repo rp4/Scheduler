@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { GanttChart } from '@/components/features/gantt/GanttChart'
 import { HoursGrid } from '@/components/features/hours/HoursGrid'
 import { SkillsWithTabs } from '@/components/features/skills/SkillsWithTabs'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export default function SchedulePage() {
   const [view, setView] = useState<string>('gantt')
@@ -23,9 +24,11 @@ export default function SchedulePage() {
 
   return (
     <div className="card animate-fade-in">
-      {view === 'gantt' && <GanttChart />}
-      {view === 'hours' && <HoursGrid />}
-      {view === 'skills' && <SkillsWithTabs />}
+      <ErrorBoundary>
+        {view === 'gantt' && <GanttChart />}
+        {view === 'hours' && <HoursGrid />}
+        {view === 'skills' && <SkillsWithTabs />}
+      </ErrorBoundary>
     </div>
   )
 }

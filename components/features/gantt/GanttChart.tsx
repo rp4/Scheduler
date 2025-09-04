@@ -3,8 +3,7 @@
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { Gantt, Task, ViewMode } from 'gantt-task-react'
-import { EditProjectForm } from './EditProjectForm'
-import { AddProjectForm } from './AddProjectForm'
+import { ProjectForm } from './ProjectForm'
 import { ZoomIn, ZoomOut, Calendar } from 'lucide-react'
 import type { Project } from '@/types/schedule'
 import "gantt-task-react/dist/index.css"
@@ -336,7 +335,10 @@ export function GanttChart() {
       <div className="flex justify-between items-center mb-6">
         <div className="flex gap-3">
           {/* Add Project Button */}
-          <AddProjectForm onAddProject={addProject} />
+          <ProjectForm 
+            mode="add" 
+            onSubmit={(projectData) => addProject(projectData as any)}
+          />
         </div>
         
         <div className="flex gap-3">
@@ -502,11 +504,16 @@ export function GanttChart() {
       `}</style>
       
       {/* Edit Project Dialog */}
-      <EditProjectForm
+      <ProjectForm
+        mode="edit"
         project={editingProject}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        onUpdateProject={handleProjectUpdate}
+        onSubmit={(projectData) => {
+          if (editingProject && projectData.id) {
+            handleProjectUpdate(projectData.id, projectData)
+          }
+        }}
       />
     </div>
   )
