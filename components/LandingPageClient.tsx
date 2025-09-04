@@ -3,13 +3,16 @@
 import { useState, useEffect } from 'react'
 import { Upload, Download, Rocket, FileSpreadsheet } from 'lucide-react'
 import { useScheduleStore } from '@/store/useScheduleStore'
-import { parseExcelFile } from '@/lib/excel/parser'
+import { parseExcelSafe } from '@/lib/excel/parserWithWorker'
 import { loadSampleData } from '@/lib/sample-data'
 import { showToast } from '@/components/ui/Toast'
+import { ProgressBar } from '@/components/ui/ProgressBar'
 
 export function LandingPageClient() {
   const [isLoading, setIsLoading] = useState(false)
   const [fileToProcess, setFileToProcess] = useState<File | null>(null)
+  const [parseProgress, setParseProgress] = useState(0)
+  const [isParsingFile, setIsParsingFile] = useState(false)
   const loadData = useScheduleStore((state) => state.loadData)
 
   // Process file in useEffect to ensure proper state updates
@@ -19,7 +22,12 @@ export function LandingPageClient() {
     const processFile = async () => {
       try {
         console.log('Starting to parse file:', fileToProcess.name)
-        const data = await parseExcelFile(fileToProcess)
+        setIsParsingFile(true)
+        setParseProgress(0)
+        
+        const data = await parseExcelSafe(fileToProcess, (progress) => {
+          setParseProgress(progress)
+        })
         console.log('Parsed data:', data)
         
         // Validate data has content
@@ -40,6 +48,8 @@ export function LandingPageClient() {
         const errorMessage = error instanceof Error ? error.message : 'Please check the file format and try again.'
         showToast('error', 'Failed to parse Excel file', errorMessage)
         setIsLoading(false) // Only reset on error
+        setIsParsingFile(false)
+        setParseProgress(0)
         setFileToProcess(null)
       }
     }
@@ -103,18 +113,39 @@ export function LandingPageClient() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        <div className="text-center bg-white rounded-xl shadow-xl p-8">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 mx-auto"></div>
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute inset-0 mx-auto"></div>
-          </div>
-          <h2 className="mt-6 text-xl font-semibold text-gray-800">Processing your file...</h2>
-          <p className="mt-2 text-gray-600">Loading schedule data and preparing workspace</p>
-          <div className="mt-4 flex items-center justify-center gap-1">
-            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-          </div>
+        <div className="text-center bg-white rounded-xl shadow-xl p-8 max-w-md w-full">
+          {isParsingFile ? (
+            <>
+              <FileSpreadsheet className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">Parsing Excel File...</h2>
+              <p className="text-gray-600 mb-6">Processing your schedule data in the background</p>
+              <ProgressBar 
+                progress={parseProgress} 
+                label={
+                  parseProgress < 30 ? 'Reading employees...' :
+                  parseProgress < 50 ? 'Loading projects...' :
+                  parseProgress < 90 ? 'Processing assignments...' :
+                  'Finalizing...'
+                }
+                className="mb-4"
+              />
+              <p className="text-sm text-gray-500">Using Web Worker for optimal performance</p>
+            </>
+          ) : (
+            <>
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 mx-auto"></div>
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute inset-0 mx-auto"></div>
+              </div>
+              <h2 className="mt-6 text-xl font-semibold text-gray-800">Processing your file...</h2>
+              <p className="mt-2 text-gray-600">Loading schedule data and preparing workspace</p>
+              <div className="mt-4 flex items-center justify-center gap-1">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     )

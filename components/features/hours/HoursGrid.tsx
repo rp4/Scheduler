@@ -9,7 +9,8 @@ import { generateId } from '@/lib/utils'
 import { Project } from '@/types/schedule'
 import { ViewModeToggle, type ViewMode } from '@/components/ui/ViewModeToggle'
 
-export function HoursGrid() {
+// Memoized component to prevent unnecessary re-renders
+export const HoursGrid = React.memo(function HoursGrid() {
   const [viewMode, setViewMode] = useState<ViewMode>('employee')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [addingToRow, setAddingToRow] = useState<string | null>(null)
@@ -1279,4 +1280,4 @@ export function HoursGrid() {
       {viewMode === 'employee' ? renderEmployeeView() : renderProjectView()}
     </div>
   )
-}
+})
