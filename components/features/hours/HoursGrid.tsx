@@ -634,10 +634,10 @@ export const HoursGrid = React.memo(function HoursGrid() {
                   <th 
                     key={week.toISOString()} 
                     className={`text-center p-1 border border-gray-200 font-normal min-w-[50px] ${
-                      isCurrentWeek ? 'bg-blue-100 border-blue-300' : ''
+                      isCurrentWeek ? 'bg-yellow-100' : ''
                     }`}
                   >
-                    <div className={`text-xs ${isCurrentWeek ? 'font-semibold text-blue-700' : ''}`}>
+                    <div className={`text-xs ${isCurrentWeek ? 'font-semibold text-yellow-700' : ''}`}>
                       {format(week, 'd')}
                     </div>
                   </th>
@@ -694,9 +694,7 @@ export const HoursGrid = React.memo(function HoursGrid() {
                         <td 
                           key={week.toISOString()} 
                           className={`p-2 border border-gray-200 text-center ${
-                            isCurrentWeek ? 'border-blue-300' : ''
-                          } ${
-                            isOvertime ? 'bg-red-50' : weekTotal > 0 ? 'bg-green-50' : isCurrentWeek ? 'bg-blue-50' : ''
+                            isOvertime ? 'bg-red-50' : weekTotal > 0 ? 'bg-green-50' : isCurrentWeek ? 'bg-yellow-50' : ''
                           }`}
                         >
                           <div className={`font-semibold ${isOvertime ? 'text-red-600' : ''}`}>
@@ -735,8 +733,9 @@ export const HoursGrid = React.memo(function HoursGrid() {
                           // Check if there are more weeks in range to the right
                           const hasWeeksToRight = weeks.slice(weekIndex + 1).some(w => isWeekInProjectRange(w, project))
                           
+                          const isCurrentWeek = weekIndex === currentWeekIndex
                           return (
-                            <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center group ${isInRange ? 'bg-white' : 'bg-gray-50'}`}>
+                            <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center group ${isInRange ? (isCurrentWeek ? 'bg-yellow-50' : 'bg-white') : 'bg-gray-50'}`}>
                               {isInRange ? (
                                 <div className="flex items-center gap-0.5 justify-center">
                                   <input
@@ -899,10 +898,10 @@ export const HoursGrid = React.memo(function HoursGrid() {
                   <th 
                     key={week.toISOString()} 
                     className={`text-center p-1 border border-gray-200 font-normal min-w-[50px] ${
-                      isCurrentWeek ? 'bg-blue-100 border-blue-300' : ''
+                      isCurrentWeek ? 'bg-yellow-100' : ''
                     }`}
                   >
-                    <div className={`text-xs ${isCurrentWeek ? 'font-semibold text-blue-700' : ''}`}>
+                    <div className={`text-xs ${isCurrentWeek ? 'font-semibold text-yellow-700' : ''}`}>
                       {format(week, 'd')}
                     </div>
                   </th>
@@ -974,9 +973,7 @@ export const HoursGrid = React.memo(function HoursGrid() {
                         <td 
                           key={week.toISOString()} 
                           className={`p-2 border border-gray-200 text-center ${
-                            isCurrentWeek ? 'border-blue-300' : ''
-                          } ${
-                            weekTotal > 0 ? 'bg-blue-50' : isCurrentWeek ? 'bg-blue-100' : ''
+                            weekTotal > 0 ? 'bg-blue-50' : isCurrentWeek ? 'bg-yellow-100' : ''
                           }`}
                         >
                           <div className="font-semibold">
@@ -1025,8 +1022,9 @@ export const HoursGrid = React.memo(function HoursGrid() {
                           // Check if there are more weeks in range to the right
                           const hasWeeksToRight = weeks.slice(weekIndex + 1).some(w => isWeekInProjectRange(w, project))
                           
+                          const isCurrentWeek = weekIndex === currentWeekIndex
                           return (
-                            <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center group ${isInRange ? 'bg-white' : 'bg-gray-50'}`}>
+                            <td key={week.toISOString()} className={`p-1 border border-gray-200 text-center group ${isInRange ? (isCurrentWeek ? 'bg-yellow-50' : 'bg-white') : 'bg-gray-50'}`}>
                               {isInRange ? (
                                 <div className="flex items-center gap-0.5 justify-center">
                                   <input

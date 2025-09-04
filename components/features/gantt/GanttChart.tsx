@@ -136,8 +136,8 @@ export const GanttChart = React.memo(function GanttChart() {
       progress: 0, // No progress bars
       isDisabled: false,
       styles: {
-        backgroundColor: '#3b82f6', // Single blue color
-        backgroundSelectedColor: '#3b82f6', // Same color when selected
+        backgroundColor: '#dbeafe', // Light blue matching bg-blue-50
+        backgroundSelectedColor: '#dbeafe', // Same color when selected
         progressColor: 'transparent', // Hide progress bar
         progressSelectedColor: 'transparent' // Hide progress bar when selected
       }
@@ -386,7 +386,7 @@ export const GanttChart = React.memo(function GanttChart() {
           fontSize="12px"
           rowHeight={40}
           barCornerRadius={4}
-          todayColor="rgba(239, 68, 68, 0.5)"
+          todayColor="rgba(254, 249, 195, 0.8)"
           // Ensure dragging is enabled
           handleWidth={8}
           timeStep={1000 * 60 * 60 * 24} // 1 day steps for dragging
@@ -452,19 +452,19 @@ export const GanttChart = React.memo(function GanttChart() {
         
         /* Today line */
         .gantt-container ._2pYPm {
-          stroke: #ef4444;
+          stroke: #fef3c7;
           stroke-width: 2;
         }
         
         /* Task bars - ensure solid color */
         .gantt-container rect.barBackground {
-          fill: #3b82f6 !important;
+          fill: #dbeafe !important;
           rx: 4;
         }
         
         /* Selected task bars - same color */
         .gantt-container rect.barBackgroundSelected {
-          fill: #3b82f6 !important;
+          fill: #dbeafe !important;
         }
         
         /* Hide progress bars */
@@ -472,10 +472,22 @@ export const GanttChart = React.memo(function GanttChart() {
           display: none !important;
         }
         
-        /* Task labels */
-        .gantt-container text.barLabel {
-          fill: white !important;
-          font-weight: 500;
+        /* Task labels - force black text with multiple selectors */
+        .gantt-container text.barLabel,
+        .gantt-container svg text,
+        .gantt-container .barWrapper text,
+        .gantt-container g.barWrapper text,
+        .gantt-container g text,
+        .gantt-container text {
+          fill: #000000 !important;
+          color: #000000 !important;
+          font-weight: 700 !important;
+        }
+        
+        /* Specifically target task text */
+        .gantt-container svg g rect[class*="bar"] + text {
+          fill: #000000 !important;
+          font-weight: 700 !important;
         }
         
         /* Resize handles */
