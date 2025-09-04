@@ -160,18 +160,18 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
                       <div>
                         <div className="text-gray-600">Utilization</div>
                         <div className="font-semibold">
-                          {(results.metrics.currentUtilization * 100).toFixed(1)}% → {(results.metrics.predictedUtilization * 100).toFixed(1)}%
+                          {results.metrics.currentUtilization.toFixed(1)}% → {results.metrics.predictedUtilization.toFixed(1)}%
                           <span className={`ml-2 text-xs ${results.metrics.predictedUtilization > results.metrics.currentUtilization ? 'text-green-600' : 'text-orange-600'}`}>
-                            ({results.metrics.predictedUtilization > results.metrics.currentUtilization ? '+' : ''}{((results.metrics.predictedUtilization - results.metrics.currentUtilization) * 100).toFixed(1)}%)
+                            ({results.metrics.predictedUtilization > results.metrics.currentUtilization ? '+' : ''}{(results.metrics.predictedUtilization - results.metrics.currentUtilization).toFixed(1)}%)
                           </span>
                         </div>
                       </div>
                       <div>
                         <div className="text-gray-600">Skills Match</div>
                         <div className="font-semibold">
-                          {(results.metrics.currentSkillsMatch * 100).toFixed(1)}% → {(results.metrics.predictedSkillsMatch * 100).toFixed(1)}%
+                          {results.metrics.currentSkillsMatch.toFixed(0)} → {results.metrics.predictedSkillsMatch.toFixed(0)}
                           <span className={`ml-2 text-xs ${results.metrics.predictedSkillsMatch > results.metrics.currentSkillsMatch ? 'text-green-600' : 'text-orange-600'}`}>
-                            ({results.metrics.predictedSkillsMatch > results.metrics.currentSkillsMatch ? '+' : ''}{((results.metrics.predictedSkillsMatch - results.metrics.currentSkillsMatch) * 100).toFixed(1)}%)
+                            ({results.metrics.predictedSkillsMatch > results.metrics.currentSkillsMatch ? '+' : ''}{(results.metrics.predictedSkillsMatch - results.metrics.currentSkillsMatch).toFixed(0)})
                           </span>
                         </div>
                       </div>
