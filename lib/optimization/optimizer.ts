@@ -41,9 +41,13 @@ export async function optimizeSchedule(
   // Pre-compute skill score matrix for performance
   const skillScoreMatrix = createSkillScoreMatrix(data.employees, data.projects)
   
-  // Find all placeholder assignments
+  // Find all placeholder assignments (including numbered placeholders)
   const placeholderAssignments = data.assignments.filter(
-    a => a.employeeId === 'Placeholder' || a.employeeId === 'placeholder'
+    a => a.employeeId && (
+      a.employeeId === 'Placeholder' || 
+      a.employeeId === 'placeholder' ||
+      a.employeeId.startsWith('Placeholder ')  // Handles "Placeholder 1", "Placeholder 2", etc.
+    )
   )
   
   if (placeholderAssignments.length === 0) {
@@ -75,47 +79,70 @@ export async function optimizeSchedule(
   const suggestions: PlaceholderSuggestion[] = []
   const projectMap = new Map(data.projects.map(p => [p.id, p]))
   
-  for (let i = 0; i < placeholderAssignments.length; i++) {
-    const placeholder = placeholderAssignments[i]
-    const project = projectMap.get(placeholder.projectId)
+  // Group placeholders by project and week to handle multiple placeholders properly
+  const placeholderGroups = new Map<string, Assignment[]>()
+  placeholderAssignments.forEach(placeholder => {
+    const key = `${placeholder.projectId}-${placeholder.week || placeholder.date}`
+    if (!placeholderGroups.has(key)) {
+      placeholderGroups.set(key, [])
+    }
+    placeholderGroups.get(key)!.push(placeholder)
+  })
+  
+  let processedCount = 0
+  for (const placeholders of placeholderGroups.values()) {
+    const firstPlaceholder = placeholders[0]
+    const project = projectMap.get(firstPlaceholder.projectId)
     
     if (!project) continue
     
-    // Find best employee based on algorithm
-    const bestEmployee = await findBestEmployee(
-      placeholder,
-      project,
-      data,
-      weights,
-      skillScoreMatrix,
-      algorithm
-    )
+    // Track already assigned employees for THIS specific project-week combination
+    // This ensures different employees for multiple placeholders in the same week
+    const assignedEmployeesForWeek = new Set<string>()
     
-    if (bestEmployee) {
-      // Calculate individual scores for this assignment
-      const scores = calculateAssignmentScores(
-        bestEmployee,
+    // For each placeholder in this project-week, find a unique employee
+    for (const placeholder of placeholders) {
+      // Find best employee based on algorithm, excluding already assigned ones
+      const bestEmployee = await findBestEmployee(
         placeholder,
         project,
         data,
-        skillScoreMatrix
+        weights,
+        skillScoreMatrix,
+        algorithm,
+        assignedEmployeesForWeek  // Pass employees already assigned in this week
       )
       
-      suggestions.push({
-        projectId: project.id,
-        projectName: project.name,
-        week: placeholder.week,
-        originalHours: placeholder.hours,
-        suggestedEmployeeId: bestEmployee.id,
-        suggestedEmployeeName: bestEmployee.name,
-        overtimeScore: scores.overtime,
-        utilizationScore: scores.utilization,
-        skillsScore: scores.skills,
-      })
-    }
-    
-    if (onProgress) {
-      onProgress(10 + (i / placeholderAssignments.length) * 80)
+      if (bestEmployee) {
+        // Mark this employee as assigned for this week
+        assignedEmployeesForWeek.add(bestEmployee.id)
+        
+        // Calculate individual scores for this assignment
+        const scores = calculateAssignmentScores(
+          bestEmployee,
+          placeholder,
+          project,
+          data,
+          skillScoreMatrix
+        )
+        
+        suggestions.push({
+          projectId: project.id,
+          projectName: project.name,
+          week: placeholder.week,
+          originalHours: placeholder.hours,
+          suggestedEmployeeId: bestEmployee.id,
+          suggestedEmployeeName: bestEmployee.name,
+          overtimeScore: scores.overtime,
+          utilizationScore: scores.utilization,
+          skillsScore: scores.skills,
+        })
+      }
+      
+      processedCount++
+      if (onProgress) {
+        onProgress(10 + (processedCount / placeholderAssignments.length) * 80)
+      }
     }
   }
   
@@ -275,7 +302,10 @@ function calculateTotalOvertime(employees: Employee[], assignments: Assignment[]
   const employeeHours = new Map<string, number>()
   
   assignments.forEach(a => {
-    if (a.employeeId !== 'Placeholder' && a.employeeId !== 'placeholder') {
+    if (a.employeeId && 
+        a.employeeId !== 'Placeholder' && 
+        a.employeeId !== 'placeholder' &&
+        !a.employeeId.startsWith('Placeholder ')) {
       const current = employeeHours.get(a.employeeId) || 0
       employeeHours.set(a.employeeId, current + a.hours)
     }
@@ -298,9 +328,15 @@ async function findBestEmployee(
   data: ScheduleData,
   weights: OptimizationWeights,
   skillScoreMatrix: Map<string, Map<string, number>>,
-  _algorithm: 'genetic' | 'annealing' | 'constraint'
+  _algorithm: 'genetic' | 'annealing' | 'constraint',
+  excludedEmployees: Set<string> = new Set()  // Employees already assigned to other placeholders
 ): Promise<Employee | null> {
-  const candidates = data.employees.filter(e => e.id !== 'placeholder' && e.id !== 'Placeholder')
+  const candidates = data.employees.filter(e => 
+    e.id !== 'placeholder' && 
+    e.id !== 'Placeholder' &&
+    !e.id.startsWith('placeholder') &&  // Filter out virtual placeholder employees
+    !excludedEmployees.has(e.id)  // Filter out already assigned employees
+  )
   
   if (candidates.length === 0) return null
   
@@ -386,9 +422,12 @@ function applysuggestions(
 ): Assignment[] {
   const result = [...assignments]
   
-  // Remove placeholder assignments
+  // Remove placeholder assignments (including numbered ones)
   const filtered = result.filter(
-    a => a.employeeId !== 'Placeholder' && a.employeeId !== 'placeholder'
+    a => a.employeeId && 
+         a.employeeId !== 'Placeholder' && 
+         a.employeeId !== 'placeholder' &&
+         !a.employeeId.startsWith('Placeholder ')
   )
   
   // Add suggested assignments

@@ -477,46 +477,11 @@ export function HoursGrid() {
     const project = filteredData.projects.find(p => p.id === projectId)
     if (!project) return
 
-    // Handle Placeholder employee specially
-    if (employeeId === 'placeholder') {
-      for (let i = fromWeekIndex + 1; i < weeks.length; i++) {
-        const week = weeks[i]
-        if (isWeekInProjectRange(week, project)) {
-          const dateStr = formatWeekToDate(week)
-          const weekStr = formatWeek(week)
-          
-          // Check if assignment already exists
-          const existing = filteredData.assignments.find(a => 
-            a.employeeId === 'Placeholder' && 
-            (a.projectId === projectId || a.projectId === project.name) &&
-            (a.date === dateStr || (!a.date && a.week === weekStr))
-          )
-          
-          if (existing) {
-            if (hours === 0) {
-              removeAssignment(existing.id)
-            } else {
-              updateAssignment(existing.id, { hours, date: dateStr })
-            }
-          } else if (hours > 0) {
-            addAssignment({
-              id: generateId(),
-              employeeId: 'Placeholder',
-              projectId: projectId,
-              week: weekStr,
-              date: dateStr,
-              hours
-            })
-          }
-        }
-      }
-    } else {
-      // Start from the next week after the current one
-      for (let i = fromWeekIndex + 1; i < weeks.length; i++) {
-        const week = weeks[i]
-        if (isWeekInProjectRange(week, project)) {
-          handleHoursChange(employeeId, projectId, week, hours)
-        }
+    // Start from the next week after the current one
+    for (let i = fromWeekIndex + 1; i < weeks.length; i++) {
+      const week = weeks[i]
+      if (isWeekInProjectRange(week, project)) {
+        handleHoursChange(employeeId, projectId, week, hours)
       }
     }
   }
@@ -957,16 +922,26 @@ export function HoursGrid() {
                 )
               )
               
-              // Check if there are any Placeholder assignments for this project
-              const hasPlaceholder = filteredData.assignments.some(a => 
-                a.employeeId === 'Placeholder' && 
-                (a.projectId === project.id || a.projectId === project.name)
-              )
+              // Find all unique placeholder IDs for this project (e.g., "Placeholder 1", "Placeholder 2")
+              const placeholderIds = new Set<string>()
+              filteredData.assignments.forEach(a => {
+                if (a.employeeId && a.employeeId.startsWith('Placeholder') && 
+                    (a.projectId === project.id || a.projectId === project.name)) {
+                  placeholderIds.add(a.employeeId)
+                }
+              })
               
-              // Create a virtual Placeholder employee if needed
-              const projectEmployees = hasPlaceholder 
-                ? [...regularEmployees, { id: 'placeholder', name: 'Placeholder', team: 'Unassigned', maxHours: 40, skills: {} }]
-                : regularEmployees
+              // Create virtual employees for each placeholder
+              const placeholderEmployees = Array.from(placeholderIds).map(placeholderId => ({
+                id: placeholderId.toLowerCase().replace(' ', '_'), // e.g., "placeholder_1"
+                name: placeholderId, // e.g., "Placeholder 1"
+                team: 'Unassigned',
+                maxHours: 40,
+                skills: {}
+              }))
+              
+              // Combine regular employees with placeholder employees
+              const projectEmployees = [...regularEmployees, ...placeholderEmployees]
 
               return (
                 <React.Fragment key={project.id}>
@@ -1013,11 +988,15 @@ export function HoursGrid() {
                   
                   {/* Expandable employee rows for this project */}
                   {isExpanded && projectEmployees.map(employee => {
-                    const employeeAssignments = filteredData.assignments.filter(
-                      a => (a.employeeId === employee.id || a.employeeId === employee.name || 
-                           (employee.id === 'placeholder' && a.employeeId === 'Placeholder')) && 
-                           (a.projectId === project.id || a.projectId === project.name)
-                    )
+                    const employeeAssignments = employee.id.startsWith('placeholder_') 
+                      ? filteredData.assignments.filter(
+                          a => a.employeeId === employee.name && 
+                               (a.projectId === project.id || a.projectId === project.name)
+                        )
+                      : filteredData.assignments.filter(
+                          a => (a.employeeId === employee.id || a.employeeId === employee.name) && 
+                               (a.projectId === project.id || a.projectId === project.name)
+                        )
 
                     return (
                       <tr key={`${project.id}-${employee.id}`} className="bg-gray-50">
@@ -1029,9 +1008,9 @@ export function HoursGrid() {
                           </span>
                         </td>
                         {weeks.map((week, weekIndex) => {
-                          const assignment = employee.id === 'placeholder' 
+                          const assignment = employee.id.startsWith('placeholder_') 
                             ? filteredData.assignments.find(a => 
-                                a.employeeId === 'Placeholder' && 
+                                a.employeeId === employee.name &&
                                 (a.projectId === project.id || a.projectId === project.name) &&
                                 (a.date === formatWeekToDate(week) || (!a.date && a.week === formatWeek(week)))
                               )
@@ -1053,7 +1032,7 @@ export function HoursGrid() {
                                     value={assignment?.hours || ''}
                                     onChange={(e) => {
                                       const hours = parseInt(e.target.value) || 0
-                                      if (employee.id === 'placeholder') {
+                                      if (employee.id.startsWith('placeholder_')) {
                                         // Handle Placeholder assignments
                                         if (assignment) {
                                           if (hours === 0) {
@@ -1064,7 +1043,7 @@ export function HoursGrid() {
                                         } else if (hours > 0) {
                                           addAssignment({
                                             id: generateId(),
-                                            employeeId: 'Placeholder',
+                                            employeeId: employee.name, // Use the full name like "Placeholder 1"
                                             projectId: project.id,
                                             week: formatWeek(week),
                                             date: formatWeekToDate(week),
@@ -1080,7 +1059,44 @@ export function HoursGrid() {
                                   />
                                   {hasWeeksToRight && (
                                     <button
-                                      onClick={() => copyHoursToRight(employee.id, project.id, weekIndex, currentHours)}
+                                      onClick={() => {
+                                        if (employee.id.startsWith('placeholder_')) {
+                                          // For placeholders, copy hours to all remaining weeks
+                                          for (let i = weekIndex + 1; i < weeks.length; i++) {
+                                            const weekToUpdate = weeks[i]
+                                            if (isWeekInProjectRange(weekToUpdate, project)) {
+                                              const dateStr = formatWeekToDate(weekToUpdate)
+                                              const weekStr = formatWeek(weekToUpdate)
+                                              
+                                              // Find existing assignment for this placeholder
+                                              const existing = filteredData.assignments.find(a => 
+                                                a.employeeId === employee.name &&
+                                                (a.projectId === project.id || a.projectId === project.name) &&
+                                                (a.date === dateStr || (!a.date && a.week === weekStr))
+                                              )
+                                              
+                                              if (existing) {
+                                                if (currentHours === 0) {
+                                                  removeAssignment(existing.id)
+                                                } else {
+                                                  updateAssignment(existing.id, { hours: currentHours, date: dateStr })
+                                                }
+                                              } else if (currentHours > 0) {
+                                                addAssignment({
+                                                  id: generateId(),
+                                                  employeeId: employee.name,
+                                                  projectId: project.id,
+                                                  week: weekStr,
+                                                  date: dateStr,
+                                                  hours: currentHours
+                                                })
+                                              }
+                                            }
+                                          }
+                                        } else {
+                                          copyHoursToRight(employee.id, project.id, weekIndex, currentHours)
+                                        }
+                                      }}
                                       className="p-0.5 border border-l-0 border-gray-300 rounded-r bg-gray-50 hover:bg-blue-100 transition-all duration-200 opacity-0 group-hover:opacity-100 peer-focus:opacity-100 -ml-0.5"
                                       title="Copy value to all weeks to the right"
                                     >
@@ -1114,7 +1130,27 @@ export function HoursGrid() {
                                 
                                 // Handle Placeholder employee
                                 if (employeeId === 'placeholder') {
-                                  // Create a placeholder assignment
+                                  // Find existing placeholder assignments for this project to determine next number
+                                  const existingPlaceholders = filteredData.assignments
+                                    .filter(a => a.employeeId && a.employeeId.startsWith('Placeholder') && 
+                                           (a.projectId === project.id || a.projectId === project.name))
+                                    .map(a => a.employeeId)
+                                  
+                                  const uniquePlaceholders = Array.from(new Set(existingPlaceholders))
+                                  const placeholderNumbers = uniquePlaceholders
+                                    .filter(id => id.startsWith('Placeholder '))
+                                    .map(id => {
+                                      const match = id.match(/Placeholder (\d+)/)
+                                      return match ? parseInt(match[1]) : 0
+                                    })
+                                  
+                                  const nextNumber = placeholderNumbers.length > 0 
+                                    ? Math.max(...placeholderNumbers) + 1 
+                                    : 1
+                                  
+                                  const placeholderName = `Placeholder ${nextNumber}`
+                                  
+                                  // Create initial assignment for the first week in project range
                                   const projectWeeks = weeks.filter(w => isWeekInProjectRange(w, project))
                                   if (projectWeeks.length > 0) {
                                     const firstWeek = projectWeeks[0]
@@ -1123,7 +1159,7 @@ export function HoursGrid() {
                                     
                                     addAssignment({
                                       id: generateId(),
-                                      employeeId: 'Placeholder',
+                                      employeeId: placeholderName,
                                       projectId: project.id,
                                       week: weekStr,
                                       date: dateStr,
@@ -1169,11 +1205,9 @@ export function HoursGrid() {
                             autoFocus
                           >
                             <option value="">Select an employee...</option>
-                            {!hasPlaceholder && (
-                              <option value="placeholder" className="font-semibold text-blue-600">
-                                Placeholder (for optimization)
-                              </option>
-                            )}
+                            <option value="placeholder" className="font-semibold text-blue-600">
+                              Placeholder (for optimization)
+                            </option>
                             <optgroup label="Available Employees">
                               {filteredData.employees
                                 .filter(e => !regularEmployees.some(pe => pe.id === e.id))
