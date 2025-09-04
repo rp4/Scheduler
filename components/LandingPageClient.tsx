@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { Upload, Download, Rocket, FileSpreadsheet } from 'lucide-react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { parseExcelSafe } from '@/lib/excel/parserWithWorker'
-import { loadSampleData } from '@/lib/sample-data'
 import { showToast } from '@/components/ui/Toast'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { PrivacyNotice } from '@/components/ui/PrivacyNotice'
@@ -16,9 +15,16 @@ export function LandingPageClient() {
   const [isParsingFile, setIsParsingFile] = useState(false)
   const loadData = useScheduleStore((state) => state.loadData)
 
+  // Debug logging
+  console.log('[LandingPageClient] Render - isLoading:', isLoading, 'fileToProcess:', fileToProcess?.name)
+
   // Process file in useEffect to ensure proper state updates
   useEffect(() => {
-    if (!fileToProcess) return
+    console.log('useEffect triggered, fileToProcess:', fileToProcess)
+    if (!fileToProcess) {
+      console.log('No file to process, returning')
+      return
+    }
 
     const processFile = async () => {
       try {
@@ -59,52 +65,73 @@ export function LandingPageClient() {
     processFile()
   }, [fileToProcess, loadData])
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    console.log('File selected:', file)
-    if (!file) {
-      console.log('No file selected')
-      return
-    }
-    
-    console.log('File details:', {
-      name: file.name,
-      size: file.size,
-      type: file.type
-    })
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = event.target.files?.[0]
+      console.log('[handleFileUpload] File selected:', file)
+      if (!file) {
+        console.log('[handleFileUpload] No file selected')
+        return
+      }
+      
+      console.log('[handleFileUpload] File details:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      })
 
-    // Validate file type
-    if (!file.name.match(/\.(xlsx|xls)$/i)) {
-      showToast('error', 'Invalid file type', 'Please select an Excel file (.xlsx or .xls)')
-      event.target.value = '' // Reset input
-      return
+      // Validate file type
+      if (!file.name.match(/\.(xlsx|xls)$/i)) {
+        console.log('[handleFileUpload] Invalid file type')
+        showToast('error', 'Invalid file type', 'Please select an Excel file (.xlsx or .xls)')
+        event.target.value = '' // Reset input
+        return
+      }
+      
+      // Validate file size (max 10MB)
+      const maxSizeInBytes = 10 * 1024 * 1024 // 10MB
+      if (file.size > maxSizeInBytes) {
+        console.log('[handleFileUpload] File too large')
+        showToast('error', 'File too large', `Please select a file smaller than 10MB (current: ${(file.size / (1024 * 1024)).toFixed(2)}MB)`)
+        event.target.value = '' // Reset input
+        return
+      }
+      
+      console.log('[handleFileUpload] Setting loading state and file to process')
+      setIsLoading(true)
+      setFileToProcess(file)
+      
+      // Reset the input value so the same file can be selected again if needed
+      event.target.value = ''
+    } catch (error) {
+      console.error('[handleFileUpload] Error:', error)
+      showToast('error', 'Upload failed', 'An error occurred while processing the file')
+      setIsLoading(false)
+      event.target.value = ''
     }
-    
-    // Validate file size (max 10MB)
-    const maxSizeInBytes = 10 * 1024 * 1024 // 10MB
-    if (file.size > maxSizeInBytes) {
-      showToast('error', 'File too large', `Please select a file smaller than 10MB (current: ${(file.size / (1024 * 1024)).toFixed(2)}MB)`)
-      event.target.value = '' // Reset input
-      return
-    }
-    
-    console.log('Setting loading state and file to process')
-    setIsLoading(true)
-    setFileToProcess(file)
-    
-    // Reset the input value so the same file can be selected again if needed
-    event.target.value = ''
   }
 
   const handleLoadSampleData = async () => {
     setIsLoading(true)
     try {
-      const data = await loadSampleData()
-      loadData(data)
-      // Keep loading state during navigation
-      window.location.href = '/schedule'
-      // Don't reset loading state here since we're navigating away
-    } catch {
+      // Fetch the sample Excel file from public directory
+      const response = await fetch('/ScheduleSample.xlsx')
+      if (!response.ok) {
+        throw new Error('Failed to load sample data')
+      }
+      
+      // Convert response to blob then to File object
+      const blob = await response.blob()
+      const file = new File([blob], 'ScheduleSample.xlsx', { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      })
+      
+      // Use the same file processing logic as upload
+      setFileToProcess(file)
+      // Don't reset loading state here since file processing will handle it
+    } catch (error) {
+      console.error('Error loading sample data:', error)
+      showToast('error', 'Failed to load sample data', 'Please try again or upload your own file.')
       setIsLoading(false) // Only reset on error
     }
   }
@@ -203,16 +230,17 @@ export function LandingPageClient() {
               <p className="text-gray-600 mb-4">
                 Upload your own Excel schedule file to begin optimizing
               </p>
-              <label className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
+              <label htmlFor="file-upload" className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
                 <Upload className="w-4 h-4" />
                 Upload Excel File
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
               </label>
+              <input
+                id="file-upload"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileUpload}
+                className="sr-only"
+              />
             </div>
 
             {/* Try Now Card */}
@@ -257,19 +285,32 @@ export function LandingPageClient() {
             </div>
           </div>
 
-          {/* GitHub Link */}
-          <div className="mt-12 text-center">
-            <a
-              href="https://github.com/rp4/Scheduler"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-              </svg>
-              <span className="text-sm">View on GitHub</span>
-            </a>
+          {/* Footer Links */}
+          <div className="mt-12 text-center space-y-4">
+            <div className="flex items-center justify-center gap-8">
+              <a
+                href="https://github.com/rp4/Scheduler"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm">View on GitHub</span>
+              </a>
+              <a
+                href="https://audittoolbox.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6.5 10.5V7.5C6.5 6.39543 7.39543 5.5 8.5 5.5H15.5C16.6046 5.5 17.5 6.39543 17.5 7.5V10.5H20.5C21.0523 10.5 21.5 10.9477 21.5 11.5V18.5C21.5 19.0523 21.0523 19.5 20.5 19.5H3.5C2.94772 19.5 2.5 19.0523 2.5 18.5V11.5C2.5 10.9477 2.94772 10.5 3.5 10.5H6.5ZM8.5 7.5V10.5H15.5V7.5H8.5ZM4.5 12.5V17.5H19.5V12.5H13V14.5C13 15.0523 12.5523 15.5 12 15.5C11.4477 15.5 11 15.0523 11 14.5V12.5H4.5Z"/>
+                </svg>
+                <span className="text-sm">Other Audit Tools</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>
