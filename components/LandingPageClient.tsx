@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Upload, Download, Rocket, FileSpreadsheet } from 'lucide-react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { parseExcelSafe } from '@/lib/excel/parserWithWorker'
@@ -9,6 +10,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar'
 import { PrivacyNotice } from '@/components/ui/PrivacyNotice'
 
 export function LandingPageClient() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [fileToProcess, setFileToProcess] = useState<File | null>(null)
   const [parseProgress, setParseProgress] = useState(0)
@@ -48,7 +50,7 @@ export function LandingPageClient() {
         
         // Add small delay to ensure state is saved
         setTimeout(() => {
-          window.location.href = '/schedule'
+          router.push('/schedule')
         }, 100)
         // Don't reset loading state here since we're navigating away
       } catch (error) {

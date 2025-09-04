@@ -52,16 +52,29 @@ const debouncedSetItem = debounce((key: string, value: string) => {
 // Custom storage object with debouncing
 const customStorage = {
   getItem: (name: string) => {
-    const str = localStorage.getItem(name)
-    if (!str) return null
-    return JSON.parse(str)
+    try {
+      const str = localStorage.getItem(name)
+      if (!str) return null
+      return JSON.parse(str)
+    } catch (error) {
+      console.error('Failed to read from localStorage:', error)
+      return null
+    }
   },
   setItem: (name: string, value: any) => {
-    // Use debounced version for setting
-    debouncedSetItem(name, JSON.stringify(value))
+    try {
+      // Use debounced version for setting
+      debouncedSetItem(name, JSON.stringify(value))
+    } catch (error) {
+      console.error('Failed to write to localStorage:', error)
+    }
   },
   removeItem: (name: string) => {
-    localStorage.removeItem(name)
+    try {
+      localStorage.removeItem(name)
+    } catch (error) {
+      console.error('Failed to remove from localStorage:', error)
+    }
   },
 }
 

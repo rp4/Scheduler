@@ -18,6 +18,7 @@ export const GanttChart = React.memo(function GanttChart() {
   const employees = useScheduleStore((state) => state.employees)
   const selectedTeam = useScheduleStore((state) => state.selectedTeam)
   const dateRangeFilter = useScheduleStore((state) => state.dateRange)
+  const hasHydrated = useScheduleStore((state) => state.hasHydrated)
   const updateProject = useScheduleStore((state) => state.updateProject)
   const addProject = useScheduleStore((state) => state.addProject)
   
@@ -314,6 +315,18 @@ export const GanttChart = React.memo(function GanttChart() {
     }
   }, [viewMode, tasks])
   
+  // Show loading state until hydrated
+  if (!hasHydrated) {
+    return (
+      <div className="text-center py-16">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+          <Calendar className="w-8 h-8 text-gray-400 animate-pulse" />
+        </div>
+        <h3 className="text-subheading mb-2">Loading...</h3>
+      </div>
+    )
+  }
+
   if (tasks.length === 0) {
     return (
       <div className="text-center py-16">
