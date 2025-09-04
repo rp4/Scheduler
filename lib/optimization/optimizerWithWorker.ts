@@ -15,12 +15,6 @@ function createOptimizerWorker(): Worker | null {
   
   try {
     // Create worker with inline code for Next.js compatibility
-    const workerCode = `
-// Inline optimization worker code
-${require('fs').readFileSync(require('path').join(__dirname, '../workers/optimizer.worker.ts'), 'utf8')}
-    `
-    
-    // For production, we'll use a simplified inline version
     const inlineWorkerCode = `
 // Simplified inline optimization worker
 const optimizeSchedule = ${optimizeScheduleInline.toString()};
@@ -218,6 +212,12 @@ export async function optimizeScheduleSafe(
   weights: OptimizationWeights,
   onProgress?: (progress: number) => void
 ): Promise<OptimizationResult> {
+  // For now, always use fallback due to Worker issues
+  // TODO: Fix Worker implementation
+  console.log('Using main thread optimization (Worker temporarily disabled)...')
+  return optimizeScheduleFallback(data, algorithm, weights, onProgress)
+  
+  /*
   if (typeof Worker !== 'undefined') {
     try {
       return await optimizeScheduleWithWorker(data, algorithm, weights, onProgress)
@@ -229,4 +229,5 @@ export async function optimizeScheduleSafe(
     console.warn('Web Workers not supported, using main thread optimization')
     return optimizeScheduleFallback(data, algorithm, weights, onProgress)
   }
+  */
 }
