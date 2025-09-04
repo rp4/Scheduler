@@ -1,4 +1,4 @@
-import { Employee, Project, Assignment } from '@/types/schedule'
+import { Employee, Project } from '@/types/schedule'
 
 export interface ValidationResult {
   isValid: boolean

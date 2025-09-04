@@ -26,11 +26,12 @@ const nextConfig = {
       }
     };
     
-    // Handle worker files
-    config.module.rules.push({
-      test: /\.worker\.(js|ts)$/,
-      use: { loader: 'worker-loader' }
-    });
+    // Worker files are currently not used with worker-loader
+    // Keeping this commented in case we want to enable it later
+    // config.module.rules.push({
+    //   test: /\.worker\.(js|ts)$/,
+    //   use: { loader: 'worker-loader' }
+    // });
     
     return config;
   }

@@ -4,7 +4,7 @@ import React, { useMemo, useRef, useCallback, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { format, startOfWeek } from 'date-fns'
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { generateId } from '@/lib/utils'
 
 interface VirtualizedHoursGridProps {
@@ -92,6 +92,7 @@ export const VirtualizedHoursGrid = React.memo(function VirtualizedHoursGrid({
   }, [])
   
   // Get assignment for a specific cell
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getAssignment = useCallback((entityId: string, weekDate: Date) => {
     const dateStr = formatWeekToDate(weekDate)
     const weekStr = formatWeek(weekDate)
@@ -123,6 +124,7 @@ export const VirtualizedHoursGrid = React.memo(function VirtualizedHoursGrid({
   }, [filteredData.assignments, viewMode, formatWeekToDate, formatWeek])
   
   // Handle hours change
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleHoursChange = useCallback((entityId: string, otherEntityId: string, weekDate: Date, hours: number) => {
     const dateStr = formatWeekToDate(weekDate)
     const weekStr = formatWeek(weekDate)

@@ -106,7 +106,7 @@ export async function parseExcelFileFallback(file: File): Promise<ScheduleData> 
 // Main export that checks for worker support
 export async function parseExcelSafe(
   file: File,
-  onProgress?: (progress: number) => void
+  _onProgress?: (progress: number) => void
 ): Promise<ScheduleData> {
   console.log('parseExcelSafe called with file:', file.name)
   
