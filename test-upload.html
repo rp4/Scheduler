@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Excel Upload</title>
+</head>
+<body>
+    <h1>Test Excel Upload</h1>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" />
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            output.innerHTML = '<p>File selected: ' + file.name + '</p>';
+            output.innerHTML += '<p>Size: ' + file.size + ' bytes</p>';
+            output.innerHTML += '<p>Type: ' + file.type + '</p>';
+            
+            // Try to read as array buffer
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const arrayBuffer = e.target.result;
+                output.innerHTML += '<p>✅ File read successfully, size: ' + arrayBuffer.byteLength + ' bytes</p>';
+                
+                // Test Web Worker support
+                if (typeof Worker !== 'undefined') {
+                    output.innerHTML += '<p>✅ Web Workers are supported</p>';
+                    
+                    // Try to create a simple worker
+                    try {
+                        const workerCode = `
+                            self.addEventListener('message', (e) => {
+                                self.postMessage({ success: true, message: 'Worker is working!' });
+                            });
+                        `;
+                        const blob = new Blob([workerCode], { type: 'application/javascript' });
+                        const workerUrl = URL.createObjectURL(blob);
+                        const worker = new Worker(workerUrl);
+                        
+                        worker.addEventListener('message', (e) => {
+                            output.innerHTML += '<p>✅ Worker message received: ' + e.data.message + '</p>';
+                            worker.terminate();
+                        });
+                        
+                        worker.addEventListener('error', (e) => {
+                            output.innerHTML += '<p>❌ Worker error: ' + e.message + '</p>';
+                        });
+                        
+                        worker.postMessage({ test: true });
+                        output.innerHTML += '<p>✅ Worker created and message sent</p>';
+                    } catch (error) {
+                        output.innerHTML += '<p>❌ Failed to create worker: ' + error.message + '</p>';
+                    }
+                } else {
+                    output.innerHTML += '<p>❌ Web Workers are NOT supported</p>';
+                }
+            };
+            
+            reader.onerror = (e) => {
+                output.innerHTML += '<p>❌ File read error</p>';
+            };
+            
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>

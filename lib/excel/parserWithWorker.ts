@@ -110,6 +110,12 @@ export async function parseExcelSafe(
 ): Promise<ScheduleData> {
   console.log('parseExcelSafe called with file:', file.name)
   
+  // For now, always use fallback due to Worker issues
+  // TODO: Fix Worker implementation
+  console.log('Using main thread parsing (Worker temporarily disabled)...')
+  return parseExcelFileFallback(file)
+  
+  /*
   // Check if Web Workers are supported
   if (typeof Worker !== 'undefined') {
     console.log('Web Workers supported, attempting worker parsing...')
@@ -127,4 +133,5 @@ export async function parseExcelSafe(
     console.warn('Web Workers not supported, using main thread parsing')
     return parseExcelFileFallback(file)
   }
+  */
 }
