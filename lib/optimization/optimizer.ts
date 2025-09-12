@@ -1,4 +1,4 @@
-import { ScheduleData, Assignment, Employee, Project } from '@/types/schedule'
+import { ScheduleData, Assignment, Employee, Project, DateRange } from '@/types/schedule'
 import { calculateSkillsMatch, createSkillScoreMatrix, calculateResourceUtilization } from '@/lib/metrics'
 
 interface OptimizationWeights {
@@ -36,7 +36,8 @@ export async function optimizeSchedule(
   data: ScheduleData,
   algorithm: 'genetic' | 'annealing' | 'constraint',
   weights: OptimizationWeights,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  dateRange?: DateRange | null
 ): Promise<OptimizationResult> {
   // Pre-compute skill score matrix for performance
   const skillScoreMatrix = createSkillScoreMatrix(data.employees, data.projects)
@@ -57,13 +58,13 @@ export async function optimizeSchedule(
       totalScore: 0,
       metrics: {
         currentOvertimeHours: calculateTotalOvertime(data.employees, data.assignments),
-        currentUtilization: calculateResourceUtilization(data.employees, data.assignments),
+        currentUtilization: calculateResourceUtilization(data.employees, data.assignments, dateRange),
         currentSkillsMatch: calculateSkillsMatch(data.assignments, 
           new Map(data.employees.map(e => [e.id, e])),
           new Map(data.projects.map(p => [p.id, p]))
         ),
         predictedOvertimeHours: calculateTotalOvertime(data.employees, data.assignments),
-        predictedUtilization: calculateResourceUtilization(data.employees, data.assignments),
+        predictedUtilization: calculateResourceUtilization(data.employees, data.assignments, dateRange),
         predictedSkillsMatch: calculateSkillsMatch(data.assignments,
           new Map(data.employees.map(e => [e.id, e])),
           new Map(data.projects.map(p => [p.id, p]))
@@ -156,13 +157,13 @@ export async function optimizeSchedule(
     totalScore: calculateTotalScore(suggestions, weights),
     metrics: {
       currentOvertimeHours: calculateTotalOvertime(data.employees, data.assignments),
-      currentUtilization: calculateResourceUtilization(data.employees, data.assignments),
+      currentUtilization: calculateResourceUtilization(data.employees, data.assignments, dateRange),
       currentSkillsMatch: calculateSkillsMatch(data.assignments,
         new Map(data.employees.map(e => [e.id, e])),
         new Map(data.projects.map(p => [p.id, p]))
       ),
       predictedOvertimeHours: calculateTotalOvertime(data.employees, predictedAssignments),
-      predictedUtilization: calculateResourceUtilization(data.employees, predictedAssignments),
+      predictedUtilization: calculateResourceUtilization(data.employees, predictedAssignments, dateRange),
       predictedSkillsMatch: calculateSkillsMatch(predictedAssignments,
         new Map(data.employees.map(e => [e.id, e])),
         new Map(data.projects.map(p => [p.id, p]))
@@ -427,15 +428,30 @@ function applysuggestions(
   assignments: Assignment[],
   suggestions: PlaceholderSuggestion[]
 ): Assignment[] {
-  const result = [...assignments]
+  // Create a set of replaced placeholders for efficient lookup
+  const replacedPlaceholders = new Set<string>()
+  suggestions.forEach(suggestion => {
+    // Create a unique key for each placeholder that was replaced
+    replacedPlaceholders.add(`${suggestion.projectId}-${suggestion.week}`)
+  })
   
-  // Remove placeholder assignments (including numbered ones)
-  const filtered = result.filter(
-    a => a.employeeId && 
-         a.employeeId !== 'Placeholder' && 
-         a.employeeId !== 'placeholder' &&
-         !a.employeeId.startsWith('Placeholder ')
-  )
+  // Keep non-placeholder assignments and unreplaced placeholders
+  const filtered = assignments.filter(a => {
+    const isPlaceholder = a.employeeId && (
+      a.employeeId === 'Placeholder' || 
+      a.employeeId === 'placeholder' ||
+      a.employeeId.startsWith('Placeholder ')
+    )
+    
+    if (!isPlaceholder) {
+      // Keep all non-placeholder assignments
+      return true
+    }
+    
+    // For placeholders, check if they were replaced
+    const placeholderKey = `${a.projectId}-${a.week || a.date}`
+    return !replacedPlaceholders.has(placeholderKey)
+  })
   
   // Add suggested assignments
   suggestions.forEach(suggestion => {

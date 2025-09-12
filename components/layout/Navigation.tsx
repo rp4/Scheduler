@@ -42,7 +42,7 @@ export function Navigation() {
   }
 
   return (
-    <div className="bg-white shadow-sm border-b border-gray-100">
+    <div className="bg-white shadow-sm border-b border-green-100">
       <div className="container mx-auto px-6">
         <div className="flex justify-between items-center">
           {/* Navigation Tabs */}
@@ -56,14 +56,17 @@ export function Navigation() {
                   key={tab.id}
                   onClick={() => handleTabClick(tab.id)}
                   className={cn(
-                    'flex items-center gap-2 px-6 py-4 font-medium transition-all duration-200 border-b-2',
+                    'flex items-center gap-2 px-6 py-4 font-medium transition-all duration-200 border-b-3 relative',
                     isActive
-                      ? 'text-blue-600 border-blue-600 bg-blue-50/50'
-                      : 'text-gray-600 border-transparent hover:text-gray-900 hover:bg-gray-50'
+                      ? 'text-green-700 border-green-600 bg-gradient-to-t from-green-50 to-transparent'
+                      : 'text-gray-600 border-transparent hover:text-green-600 hover:bg-green-50/30'
                   )}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
+                  {isActive && (
+                    <span className="absolute -top-1 -right-1 text-xs">⚽</span>
+                  )}
                 </button>
               )
             })}

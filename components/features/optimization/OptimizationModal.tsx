@@ -33,6 +33,7 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
   const assignments = useScheduleStore((state) => state.assignments)
   const skills = useScheduleStore((state) => state.skills)
   const teams = useScheduleStore((state) => state.teams)
+  const dateRange = useScheduleStore((state) => state.dateRange)
   
   // Memoize the schedule data object
   const scheduleData = useMemo(() => ({
@@ -61,7 +62,8 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
         scheduleData,
         algorithm,
         normalizedWeights,
-        (prog) => setProgress(prog)
+        (prog) => setProgress(prog),
+        dateRange
       )
 
       setProgress(100)
@@ -81,17 +83,30 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
   const handleApply = () => {
     if (!results) return
     
-    // Apply the suggestions by replacing placeholder assignments
-    const newAssignments = [...scheduleData.assignments]
+    // Create a set of replaced placeholders for efficient lookup
+    const replacedPlaceholders = new Set<string>()
+    results.suggestions.forEach(suggestion => {
+      // Create a unique key for each placeholder that was replaced
+      replacedPlaceholders.add(`${suggestion.projectId}-${suggestion.week}`)
+    })
     
-    // Remove placeholder assignments (including numbered placeholders)
-    const filtered = newAssignments.filter(
-      a => !a.employeeId || (
-        a.employeeId !== 'Placeholder' && 
-        a.employeeId !== 'placeholder' &&
-        !a.employeeId.startsWith('Placeholder ')  // Removes "Placeholder 1", "Placeholder 2", etc.
+    // Keep non-placeholder assignments and unreplaced placeholders
+    const filtered = scheduleData.assignments.filter(a => {
+      const isPlaceholder = a.employeeId && (
+        a.employeeId === 'Placeholder' || 
+        a.employeeId === 'placeholder' ||
+        a.employeeId.startsWith('Placeholder ')
       )
-    )
+      
+      if (!isPlaceholder) {
+        // Keep all non-placeholder assignments
+        return true
+      }
+      
+      // For placeholders, check if they were replaced
+      const placeholderKey = `${a.projectId}-${a.week || a.date}`
+      return !replacedPlaceholders.has(placeholderKey)
+    })
     
     // Add suggested assignments
     results.suggestions.forEach(suggestion => {

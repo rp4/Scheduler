@@ -23,6 +23,7 @@ interface ScheduleState extends ScheduleData {
   updateEmployee: (id: string, data: Partial<Employee>) => void
   updateProject: (id: string, data: Partial<Project>) => void
   addProject: (project: Omit<Project, 'id'>) => void
+  deleteProject: (id: string) => void
   updateAssignment: (id: string, data: Partial<Assignment>) => void
   addAssignment: (assignment: Assignment) => void
   removeAssignment: (id: string) => void
@@ -239,6 +240,38 @@ export const useScheduleStore = create<ScheduleState>()(
         }
         return {
           projects: [...state.projects, newProject]
+        }
+      }),
+
+      deleteProject: (id) => set((state) => {
+        // Remove the project
+        const updatedProjects = state.projects.filter(p => p.id !== id)
+        
+        // Remove all assignments associated with this project
+        const updatedAssignments = state.assignments.filter(a => {
+          // Check both projectId and project name for backwards compatibility
+          const project = state.projects.find(p => p.id === id)
+          return a.projectId !== id && (!project || a.projectId !== project.name)
+        })
+        
+        // Update incremental metrics if using them
+        if (state.assignments.length > 500) {
+          // Remove assignments from metrics
+          state.assignments
+            .filter(a => {
+              const project = state.projects.find(p => p.id === id)
+              return a.projectId === id || (project && a.projectId === project.name)
+            })
+            .forEach(a => {
+              if (a.id) {
+                removeAssignmentFromMetrics(a.id)
+              }
+            })
+        }
+        
+        return {
+          projects: updatedProjects,
+          assignments: updatedAssignments
         }
       }),
 
