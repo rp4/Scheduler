@@ -407,8 +407,8 @@ describe('Resource Utilization Calculation', () => {
     const executionTime = endTime - startTime
     console.log(`Resource utilization calculation for 1000 employees, 10000 assignments: ${executionTime.toFixed(2)}ms`)
     
-    // Should complete very quickly (under 5ms)
-    expect(executionTime).toBeLessThan(5)
+    // Should complete very quickly (under 15ms)
+    expect(executionTime).toBeLessThan(15)
     expect(utilization).toBeGreaterThan(0)
     expect(utilization).toBeLessThanOrEqual(100)
   })

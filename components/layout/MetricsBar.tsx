@@ -59,9 +59,9 @@ export const MetricsBar = React.memo(function MetricsBar() {
       return getIncrementalMetrics()
     } else {
       // Use regular calculation for small datasets
-      return calculateMetrics(employees, projects, filteredAssignments)
+      return calculateMetrics(employees, projects, filteredAssignments, dateRange)
     }
-  }, [employees, projects, filteredAssignments])
+  }, [employees, projects, filteredAssignments, dateRange])
 
   const handleOvertimeClick = () => {
     // Navigate to schedule page with hours view
@@ -105,21 +105,21 @@ export const MetricsBar = React.memo(function MetricsBar() {
   }
 
   return (
-    <div className="bg-white shadow-sm border-b border-gray-100">
+    <div className="bg-white shadow-sm border-b border-green-100">
       <div className="container mx-auto px-6 py-4">
         <div className="grid grid-cols-3 gap-4">
-          {/* Overtime Hours */}
+          {/* Overtime Hours - Yellow Card Theme */}
           <div 
             onClick={handleOvertimeClick}
-            className="flex items-center gap-3 p-4 bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200">
+            className="flex items-center gap-3 p-4 bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200 relative penalty-box-focus">
             <div className="p-2.5 bg-white rounded-lg shadow-sm">
-              <Clock className="w-5 h-5 text-orange-600" />
+              <Clock className="w-5 h-5 text-yellow-600" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-orange-900">
+              <div className="text-2xl font-bold text-yellow-900">
                 {metrics.overtimeHours}
               </div>
-              <div className="text-sm text-orange-700 font-medium">Overtime Hours</div>
+              <div className="text-sm text-yellow-700 font-medium">Overtime Hours</div>
             </div>
           </div>
 
@@ -127,8 +127,8 @@ export const MetricsBar = React.memo(function MetricsBar() {
           <div 
             onClick={handleUtilizationClick}
             className="flex items-center gap-3 p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200">
-            <div className="p-2.5 bg-white rounded-lg shadow-sm">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
+            <div className="p-2.5 bg-white rounded-lg">
+              <span className="text-xl">📊</span>
             </div>
             <div>
               <div className="text-2xl font-bold text-blue-900">
@@ -138,19 +138,22 @@ export const MetricsBar = React.memo(function MetricsBar() {
             </div>
           </div>
 
-          {/* Skills Matching */}
+          {/* Skills Matching - Trophy Target */}
           <div 
             onClick={handleSkillsClick}
-            className="flex items-center gap-3 p-4 bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200">
+            className="flex items-center gap-3 p-4 bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200 relative">
             <div className="p-2.5 bg-white rounded-lg shadow-sm">
-              <Target className="w-5 h-5 text-green-600" />
+              <span className="text-xl">🏆</span>
             </div>
             <div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-2xl font-bold text-amber-900">
                 {(metrics as any).skillsMatching || 0}
               </div>
-              <div className="text-sm text-green-700 font-medium">Skills Matching</div>
+              <div className="text-sm text-amber-700 font-medium">Skills Matching</div>
             </div>
+            {(metrics as any).skillsMatching > 80 && (
+              <span className="absolute -top-1 -right-1 text-xs animate-pulse">⭐</span>
+            )}
           </div>
         </div>
       </div>

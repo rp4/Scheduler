@@ -21,6 +21,7 @@ export const GanttChart = React.memo(function GanttChart() {
   const hasHydrated = useScheduleStore((state) => state.hasHydrated)
   const updateProject = useScheduleStore((state) => state.updateProject)
   const addProject = useScheduleStore((state) => state.addProject)
+  const deleteProject = useScheduleStore((state) => state.deleteProject)
   
   const [viewMode, setViewMode] = useState<GanttViewMode>('week')
   const [editingProject, setEditingProject] = useState<Project | null>(null)
@@ -540,6 +541,11 @@ export const GanttChart = React.memo(function GanttChart() {
           if (editingProject && projectData.id) {
             handleProjectUpdate(projectData.id, projectData)
           }
+        }}
+        onDelete={(projectId) => {
+          deleteProject(projectId)
+          setEditingProject(null)
+          setEditDialogOpen(false)
         }}
       />
     </div>

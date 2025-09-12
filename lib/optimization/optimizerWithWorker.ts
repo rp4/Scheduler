@@ -1,4 +1,4 @@
-import type { ScheduleData } from '@/types/schedule'
+import type { ScheduleData, DateRange } from '@/types/schedule'
 import type { OptimizationResult } from './optimizer'
 
 interface OptimizationWeights {
@@ -199,10 +199,11 @@ export async function optimizeScheduleFallback(
   data: ScheduleData,
   algorithm: 'genetic' | 'annealing' | 'constraint',
   weights: OptimizationWeights,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  dateRange?: DateRange | null
 ): Promise<OptimizationResult> {
   const { optimizeSchedule } = await import('./optimizer')
-  return optimizeSchedule(data, algorithm, weights, onProgress)
+  return optimizeSchedule(data, algorithm, weights, onProgress, dateRange)
 }
 
 // Main export that checks for worker support
@@ -210,12 +211,13 @@ export async function optimizeScheduleSafe(
   data: ScheduleData,
   algorithm: 'genetic' | 'annealing' | 'constraint',
   weights: OptimizationWeights,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  dateRange?: DateRange | null
 ): Promise<OptimizationResult> {
   // For now, always use fallback due to Worker issues
   // TODO: Fix Worker implementation
   console.log('Using main thread optimization (Worker temporarily disabled)...')
-  return optimizeScheduleFallback(data, algorithm, weights, onProgress)
+  return optimizeScheduleFallback(data, algorithm, weights, onProgress, dateRange)
   
   /*
   if (typeof Worker !== 'undefined') {

@@ -2,38 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import Soccer Theme */
+@import './soccer-theme.css';
+
 @layer base {
   :root {
-    /* Enhanced Color System */
+    /* Enhanced Color System with Soccer Theme */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 140 30% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 140 30% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 140 30% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 140 50% 35%; /* Soccer field green */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 140 20% 96%;
+    --secondary-foreground: 140 50% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 140 10% 95%;
+    --muted-foreground: 140 15% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 45 100% 50%; /* Trophy gold */
+    --accent-foreground: 140 50% 20%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 50%; /* Red card */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 140 20% 90%;
+    --input: 140 20% 92%;
+    --ring: 140 50% 35%;
 
     --radius: 0.5rem;
+    
+    /* Soccer Field Colors */
+    --field-green: 140 50% 35%;
+    --field-green-light: 140 45% 50%;
+    --field-green-dark: 140 55% 25%;
+    --stadium-blue: 207 70% 45%;
   }
 
   .dark {
@@ -78,23 +87,30 @@
 
 /* Design System Components */
 @layer components {
-  /* Button Hierarchy */
+  /* Button Hierarchy with Soccer Theme */
   .btn-primary {
-    @apply px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg 
+    @apply px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg 
            transition-all duration-200 hover:scale-[1.02] hover:shadow-md
-           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+           focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2
+           relative overflow-hidden;
+  }
+  
+  .btn-primary::before {
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent
+           -translate-x-full hover:translate-x-full transition-transform duration-500;
+    content: '';
   }
   
   .btn-secondary {
-    @apply px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg 
-           transition-all duration-200 hover:scale-[1.02]
-           focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+    @apply px-4 py-2 bg-green-50 hover:bg-green-100 text-green-800 font-medium rounded-lg 
+           transition-all duration-200 hover:scale-[1.02] border border-green-200
+           focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2;
   }
   
   .btn-ghost {
-    @apply px-3 py-2 hover:bg-gray-100 text-gray-600 rounded-lg 
+    @apply px-3 py-2 hover:bg-green-50 text-green-700 rounded-lg 
            transition-colors duration-200
-           focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2;
+           focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2;
   }
   
   .btn-danger {

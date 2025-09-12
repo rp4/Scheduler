@@ -34,18 +34,18 @@ export function Header() {
 
   return (
     <>
-      <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40">
+      <header className="bg-white shadow-sm border-b border-green-100 sticky top-0 z-40 goal-net-pattern">
         <div className="container mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link 
                 href="/" 
-                className="btn-icon"
+                className="btn-icon group"
                 title="Home"
               >
-                <Home className="w-5 h-5" />
+                <span className="text-2xl group-hover:animate-spin inline-block">⚽</span>
               </Link>
-              <Link href="/" className="text-heading hover:text-blue-600 transition-colors">
+              <Link href="/" className="text-heading hover:text-green-600 transition-colors">
                 Resource Scheduler
               </Link>
             </div>
@@ -54,7 +54,7 @@ export function Header() {
               {/* Optimize Button */}
               <button
                 onClick={() => setShowOptimization(true)}
-                className="btn-secondary flex items-center gap-2"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center gap-2"
               >
                 <Brain className="w-4 h-4" />
                 Optimize Schedule
@@ -63,7 +63,7 @@ export function Header() {
               {/* Export Button */}
               <button
                 onClick={handleExport}
-                className="btn-primary flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
                 Download Excel

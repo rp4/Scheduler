@@ -1,4 +1,5 @@
-import { Employee, Project, Assignment, ProficiencyLevel } from '@/types/schedule'
+import { Employee, Project, Assignment, ProficiencyLevel, DateRange } from '@/types/schedule'
+import { differenceInWeeks } from 'date-fns'
 
 // Pre-compute proficiency scores for performance
 const PROFICIENCY_SCORES: Record<ProficiencyLevel, number> = {
@@ -17,24 +18,41 @@ const PROFICIENCY_SCORES: Record<ProficiencyLevel, number> = {
  * 
  * @param employees - Array of employees with maxHours
  * @param assignments - Array of assignments with hours and time periods
+ * @param dateRange - Optional date range to calculate periods from. If not provided, uses assignment periods
  * @returns Resource utilization percentage (0-100)
  */
 export function calculateResourceUtilization(
   employees: Employee[],
-  assignments: Assignment[]
+  assignments: Assignment[],
+  dateRange?: DateRange | null
 ): number {
   // Early exit for empty data
   if (!employees.length) return 0
   
-  // Group assignments by time period and track employee hours
-  const timePeriodsSet = new Set<string>()
+  let numPeriods: number
+  
+  if (dateRange?.start && dateRange?.end) {
+    // Calculate number of weeks between start and end dates
+    const start = dateRange.start instanceof Date ? dateRange.start : new Date(dateRange.start)
+    const end = dateRange.end instanceof Date ? dateRange.end : new Date(dateRange.end)
+    
+    // Add 1 to include both start and end weeks
+    numPeriods = Math.max(1, differenceInWeeks(end, start) + 1)
+  } else {
+    // Fallback to old behavior: count unique periods from assignments
+    const timePeriodsSet = new Set<string>()
+    for (const assignment of assignments) {
+      const timeKey = assignment.date || assignment.week
+      timePeriodsSet.add(timeKey)
+    }
+    numPeriods = Math.max(1, timePeriodsSet.size)
+  }
+  
+  // Track employee hours
   const employeeAssignedHours = new Map<string, number>()
   
-  // Single pass: collect time periods and sum hours per employee
+  // Sum hours per employee
   for (const assignment of assignments) {
-    const timeKey = assignment.date || assignment.week
-    timePeriodsSet.add(timeKey)
-    
     employeeAssignedHours.set(
       assignment.employeeId,
       (employeeAssignedHours.get(assignment.employeeId) || 0) + assignment.hours
@@ -42,7 +60,6 @@ export function calculateResourceUtilization(
   }
   
   // Calculate total capacity: sum(employee.maxHours) * numPeriods
-  const numPeriods = Math.max(1, timePeriodsSet.size)
   let totalMaxCapacity = 0
   let totalAssignedHours = 0
   
@@ -60,7 +77,8 @@ export function calculateResourceUtilization(
 export function calculateMetrics(
   employees: Employee[],
   projects: Project[],
-  assignments: Assignment[]
+  assignments: Assignment[],
+  dateRange?: DateRange | null
 ) {
   let overtimeHours = 0
   
@@ -100,8 +118,8 @@ export function calculateMetrics(
     }
   })
 
-  // Use optimized utilization calculation
-  const resourceUtilization = calculateResourceUtilization(employees, assignments)
+  // Use optimized utilization calculation with date range
+  const resourceUtilization = calculateResourceUtilization(employees, assignments, dateRange)
 
   // Calculate skills matching using optimized function
   const skillsMatching = calculateSkillsMatch(assignments, employeeMap, projectMap)

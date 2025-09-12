@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, Plus, Edit2 } from 'lucide-react'
+import { X, Plus, Edit2, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import type { Project } from '@/types/schedule'
@@ -13,6 +13,7 @@ interface ProjectFormProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   onSubmit: (projectData: Partial<Project>) => void
+  onDelete?: (projectId: string) => void
   triggerButton?: React.ReactNode
 }
 
@@ -22,6 +23,7 @@ export function ProjectForm({
   open: controlledOpen, 
   onOpenChange: controlledOnOpenChange, 
   onSubmit,
+  onDelete,
   triggerButton
 }: ProjectFormProps) {
   const employees = useScheduleStore((state) => state.employees)
@@ -38,6 +40,7 @@ export function ProjectForm({
   const [endDate, setEndDate] = useState('')
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set())
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Get all unique skills from employees
   const availableSkills = useMemo(() => {
@@ -133,7 +136,16 @@ export function ProjectForm({
     setEndDate('')
     setSelectedSkills(new Set())
     setErrors({})
+    setShowDeleteConfirm(false)
     setOpen(false)
+  }
+  
+  const handleDelete = () => {
+    if (mode === 'edit' && project && onDelete) {
+      onDelete(project.id)
+      setShowDeleteConfirm(false)
+      setOpen(false)
+    }
   }
 
   // Default trigger button if not provided
@@ -275,6 +287,16 @@ export function ProjectForm({
             )}
             
             <div className="flex gap-3 pt-2">
+              {mode === 'edit' && onDelete && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                  title="Delete Project"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleCancel}
@@ -289,6 +311,35 @@ export function ProjectForm({
                 {mode === 'add' ? 'Add Project' : 'Save Changes'}
               </button>
             </div>
+            
+            {/* Delete Confirmation Dialog */}
+            {showDeleteConfirm && (
+              <div className="absolute inset-0 bg-white rounded-lg flex items-center justify-center">
+                <div className="p-6 text-center max-w-sm">
+                  <Trash2 className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Delete Project?</h3>
+                  <p className="text-gray-600 mb-4">
+                    This will permanently delete &quot;{project?.name}&quot; and all its assignments. This action cannot be undone.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </form>
         </Dialog.Content>
       </Dialog.Portal>

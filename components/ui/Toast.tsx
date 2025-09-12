@@ -27,20 +27,20 @@ function Toast({ toast, onClose }: ToastProps) {
   }, [toast.id, onClose])
 
   const icons = {
-    success: <CheckCircle className="w-5 h-5 text-green-600" />,
-    error: <AlertCircle className="w-5 h-5 text-red-600" />,
-    info: <Info className="w-5 h-5 text-blue-600" />,
+    success: <span className="text-2xl">🏆</span>,
+    error: <span className="text-2xl">🟥</span>,
+    info: <span className="text-2xl">📣</span>,
   }
 
   const styles = {
-    success: 'bg-green-50 border-green-200',
-    error: 'bg-red-50 border-red-200',
-    info: 'bg-blue-50 border-blue-200',
+    success: 'bg-green-50 border-green-300 trophy-complete',
+    error: 'bg-red-50 border-red-300 red-card-error',
+    info: 'bg-yellow-50 border-yellow-300 yellow-card-warning',
   }
 
   return (
     <div
-      className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg animate-slide-up ${
+      className={`flex items-start gap-3 p-4 rounded-lg border-2 shadow-lg animate-slide-up ${
         styles[toast.type]
       }`}
     >
