@@ -8,12 +8,19 @@ export default function ScheduleLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-700 via-green-600 to-green-500 soccer-field-pattern">
+    <div
+      className="min-h-screen bg-cover bg-center bg-fixed"
+      style={{
+        backgroundImage: 'url(/Field.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
       <Header />
       <MetricsBar />
       <Navigation />
       <main className="container mx-auto px-6 py-8">
-        <div className="bg-white/95 rounded-xl p-6 shadow-xl border border-green-200">
+        <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-green-200">
           {children}
         </div>
       </main>

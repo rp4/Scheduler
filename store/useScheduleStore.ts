@@ -43,6 +43,9 @@ const initialState: ScheduleData = {
 
 // Create a debounced version of localStorage setItem
 const debouncedSetItem = debounce((key: string, value: string) => {
+  // Check if we're in the browser
+  if (typeof window === 'undefined') return
+
   try {
     localStorage.setItem(key, value)
   } catch (e) {
@@ -53,6 +56,9 @@ const debouncedSetItem = debounce((key: string, value: string) => {
 // Custom storage object with debouncing
 const customStorage = {
   getItem: (name: string) => {
+    // Check if we're in the browser
+    if (typeof window === 'undefined') return null
+
     try {
       const str = localStorage.getItem(name)
       if (!str) return null
@@ -63,6 +69,9 @@ const customStorage = {
     }
   },
   setItem: (name: string, value: any) => {
+    // Check if we're in the browser
+    if (typeof window === 'undefined') return
+
     try {
       // Use debounced version for setting
       debouncedSetItem(name, JSON.stringify(value))
@@ -71,6 +80,9 @@ const customStorage = {
     }
   },
   removeItem: (name: string) => {
+    // Check if we're in the browser
+    if (typeof window === 'undefined') return
+
     try {
       localStorage.removeItem(name)
     } catch (error) {

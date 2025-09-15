@@ -4,7 +4,7 @@ import React, { useMemo } from 'react'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { calculateMetrics } from '@/lib/metrics'
 import { initializeIncrementalMetrics, getIncrementalMetrics } from '@/lib/metrics/incrementalMetrics'
-import { Clock, TrendingUp, Target } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { isWithinInterval } from 'date-fns'
 import { useRouter, usePathname } from 'next/navigation'
 
