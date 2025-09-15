@@ -111,8 +111,8 @@ export const MetricsBar = React.memo(function MetricsBar() {
           {/* Overtime Hours - Yellow Card Theme */}
           <div 
             onClick={handleOvertimeClick}
-            className="flex items-center gap-3 p-4 bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200 relative penalty-box-focus">
-            <div className="p-2.5 bg-white rounded-lg shadow-sm">
+            className="flex items-center gap-3 p-4 bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200 relative">
+            <div className="p-2.5 rounded-lg shadow-sm">
               <Clock className="w-5 h-5 text-yellow-600" />
             </div>
             <div>
@@ -127,7 +127,7 @@ export const MetricsBar = React.memo(function MetricsBar() {
           <div 
             onClick={handleUtilizationClick}
             className="flex items-center gap-3 p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200">
-            <div className="p-2.5 bg-white rounded-lg">
+            <div className="p-2.5 rounded-lg">
               <span className="text-xl">📊</span>
             </div>
             <div>
@@ -142,7 +142,7 @@ export const MetricsBar = React.memo(function MetricsBar() {
           <div 
             onClick={handleSkillsClick}
             className="flex items-center gap-3 p-4 bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-xl hover-lift cursor-pointer transition-all duration-200 relative">
-            <div className="p-2.5 bg-white rounded-lg shadow-sm">
+            <div className="p-2.5 rounded-lg shadow-sm">
               <span className="text-xl">🏆</span>
             </div>
             <div>
@@ -151,9 +151,6 @@ export const MetricsBar = React.memo(function MetricsBar() {
               </div>
               <div className="text-sm text-amber-700 font-medium">Skills Matching</div>
             </div>
-            {(metrics as any).skillsMatching > 80 && (
-              <span className="absolute -top-1 -right-1 text-xs animate-pulse">⭐</span>
-            )}
           </div>
         </div>
       </div>
