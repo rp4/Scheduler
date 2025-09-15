@@ -1,6 +1,6 @@
 'use client'
 
-import { Download, Brain, Home } from 'lucide-react'
+import { Download, Brain } from 'lucide-react'
 import Link from 'next/link'
 import { useScheduleStore } from '@/store/useScheduleStore'
 import { exportToExcel } from '@/lib/excel/exporter'
