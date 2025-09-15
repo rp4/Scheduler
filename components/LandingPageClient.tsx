@@ -199,7 +199,6 @@ export function LandingPageClient() {
           document.getElementById('file-upload')?.click()
         }}
         onLoadSample={handleLoadSampleData}
-        onDownloadTemplate={downloadSampleFile}
       />
       <input
         id="file-upload"

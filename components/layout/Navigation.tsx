@@ -58,15 +58,12 @@ export function Navigation() {
                   className={cn(
                     'flex items-center gap-2 px-6 py-4 font-medium transition-all duration-200 border-b-3 relative',
                     isActive
-                      ? 'text-green-700 border-green-600 bg-gradient-to-t from-green-50 to-transparent'
-                      : 'text-gray-600 border-transparent hover:text-green-600 hover:bg-green-50/30'
+                      ? 'text-blue-700 border-blue-600 bg-gradient-to-t from-blue-50 to-transparent'
+                      : 'text-gray-600 border-transparent hover:text-blue-600 hover:bg-blue-50/30'
                   )}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
-                  {isActive && (
-                    <span className="absolute -top-1 -right-1 text-xs">⚽</span>
-                  )}
                 </button>
               )
             })}

@@ -46,7 +46,7 @@ export function Header() {
                 <span className="text-2xl group-hover:animate-spin inline-block">⚽</span>
               </Link>
               <Link href="/" className="text-heading hover:text-green-600 transition-colors">
-                Resource Scheduler
+                Team Scheduler
               </Link>
             </div>
 
