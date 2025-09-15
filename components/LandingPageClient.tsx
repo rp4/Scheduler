@@ -139,14 +139,6 @@ export function LandingPageClient() {
     }
   }
 
-  const downloadSampleFile = () => {
-    const link = document.createElement('a')
-    link.href = '/ScheduleSample.xlsx'
-    link.download = 'ScheduleSample.xlsx'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
 
   if (isLoading) {
     return (
