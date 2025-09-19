@@ -127,20 +127,26 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
       sheet.forEach((row: any, _rowIndex: number) => {
         const employeeIdOrName = row.Employee || row['Employee'] || row['Employee ID'] || ''
         const projectIdOrName = row.Project || row['Project'] || row['Project ID'] || ''
-        
-        if (!employeeIdOrName || !projectIdOrName) {
-          // Skip invalid rows silently
+
+        if (!projectIdOrName) {
+          // Skip invalid rows that have no project
           return
         }
-        
+
         // Try to find employee by ID first, then by name
         let employeeId = employeeIdOrName
 
-        // Check if this is a placeholder assignment (e.g., "Placeholder 1", "Placeholder 2", etc.)
-        const isPlaceholder = employeeIdOrName && (
+        // Check if this is a placeholder assignment:
+        // - Empty/blank Employee field
+        // - "Placeholder" or strings starting with "Placeholder "
+        const isPlaceholder = !employeeIdOrName ||
           employeeIdOrName === 'Placeholder' ||
           employeeIdOrName.startsWith('Placeholder ')
-        )
+
+        // If blank, assign a placeholder ID
+        if (!employeeIdOrName) {
+          employeeId = 'Placeholder'
+        }
 
         if (!isPlaceholder) {
           const employeeById = result.employees.find(e => e.id === employeeIdOrName)
@@ -192,15 +198,21 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
         
         const employeeIdOrName = row['Employee ID'] || row.Employee || row['Employee'] || ''
         const projectIdOrName = row['Project ID'] || row.Project || row['Project'] || ''
-        
+
         // Try to find employee by ID first, then by name
         let employeeId = employeeIdOrName
 
-        // Check if this is a placeholder assignment (e.g., "Placeholder 1", "Placeholder 2", etc.)
-        const isPlaceholder = employeeIdOrName && (
+        // Check if this is a placeholder assignment:
+        // - Empty/blank Employee field
+        // - "Placeholder" or strings starting with "Placeholder "
+        const isPlaceholder = !employeeIdOrName ||
           employeeIdOrName === 'Placeholder' ||
           employeeIdOrName.startsWith('Placeholder ')
-        )
+
+        // If blank, assign a placeholder ID
+        if (!employeeIdOrName) {
+          employeeId = 'Placeholder'
+        }
 
         if (!isPlaceholder) {
           const employeeById = result.employees.find(e => e.id === employeeIdOrName)

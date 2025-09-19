@@ -61,8 +61,8 @@ function optimizeScheduleInline(
 ): any {
   // This is a simplified version - in production you'd include the full logic
   const placeholderAssignments = data.assignments.filter(
-    (a: any) => a.employeeId && (
-      a.employeeId === 'Placeholder' || 
+    (a: any) => !a.employeeId || (
+      a.employeeId === 'Placeholder' ||
       a.employeeId === 'placeholder' ||
       a.employeeId.startsWith('Placeholder ')
     )

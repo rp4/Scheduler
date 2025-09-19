@@ -51,7 +51,7 @@ export async function exportToExcel(data: ScheduleData): Promise<void> {
   // Build the employee-project to week-hours mapping
   data.assignments.forEach(assign => {
     // Check if this is a placeholder assignment
-    const isPlaceholder = assign.employeeId && (
+    const isPlaceholder = !assign.employeeId || (
       assign.employeeId === 'Placeholder' ||
       assign.employeeId.startsWith('Placeholder ')
     )
@@ -60,8 +60,8 @@ export async function exportToExcel(data: ScheduleData): Promise<void> {
     let projectName: string | undefined
 
     if (isPlaceholder) {
-      // For placeholders, use the employeeId directly as the name
-      employeeName = assign.employeeId
+      // For placeholders, use the employeeId directly as the name (or 'Placeholder' if empty)
+      employeeName = assign.employeeId || 'Placeholder'
       const project = data.projects.find(p => p.id === assign.projectId)
       projectName = project?.name
     } else {

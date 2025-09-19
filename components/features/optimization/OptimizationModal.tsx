@@ -92,8 +92,8 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
     
     // Keep non-placeholder assignments and unreplaced placeholders
     const filtered = scheduleData.assignments.filter(a => {
-      const isPlaceholder = a.employeeId && (
-        a.employeeId === 'Placeholder' || 
+      const isPlaceholder = !a.employeeId || (
+        a.employeeId === 'Placeholder' ||
         a.employeeId === 'placeholder' ||
         a.employeeId.startsWith('Placeholder ')
       )

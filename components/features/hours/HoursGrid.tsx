@@ -1012,9 +1012,10 @@ export const HoursGrid = React.memo(function HoursGrid() {
               // Find all unique placeholder IDs for this project (e.g., "Placeholder 1", "Placeholder 2")
               const placeholderIds = new Set<string>()
               filteredData.assignments.forEach(a => {
-                if (a.employeeId && a.employeeId.startsWith('Placeholder') && 
+                if ((!a.employeeId || a.employeeId.startsWith('Placeholder')) &&
                     (a.projectId === project.id || a.projectId === project.name)) {
-                  placeholderIds.add(a.employeeId)
+                  // Use 'Placeholder' for empty employee IDs, otherwise use the existing placeholder ID
+                  placeholderIds.add(a.employeeId || 'Placeholder')
                 }
               })
               
@@ -1105,7 +1106,7 @@ export const HoursGrid = React.memo(function HoursGrid() {
                                     if (newEmployeeId === 'new_placeholder') {
                                       // Find existing placeholder assignments for this project
                                       const existingPlaceholders = filteredData.assignments
-                                        .filter(a => a.employeeId && a.employeeId.startsWith('Placeholder') &&
+                                        .filter(a => (!a.employeeId || a.employeeId.startsWith('Placeholder')) &&
                                                (a.projectId === project.id || a.projectId === project.name))
                                         .map(a => a.employeeId)
 
@@ -1352,7 +1353,7 @@ export const HoursGrid = React.memo(function HoursGrid() {
                                 if (employeeId === 'placeholder') {
                                   // Find existing placeholder assignments for this project to determine next number
                                   const existingPlaceholders = filteredData.assignments
-                                    .filter(a => a.employeeId && a.employeeId.startsWith('Placeholder') && 
+                                    .filter(a => (!a.employeeId || a.employeeId.startsWith('Placeholder')) && 
                                            (a.projectId === project.id || a.projectId === project.name))
                                     .map(a => a.employeeId)
                                   
