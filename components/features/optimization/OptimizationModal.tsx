@@ -115,6 +115,7 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
         employeeId: suggestion.suggestedEmployeeId,
         projectId: suggestion.projectId,
         week: suggestion.week,
+        date: suggestion.week, // Use week as date for now
         hours: suggestion.originalHours,
       })
     })

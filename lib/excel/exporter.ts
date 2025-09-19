@@ -50,15 +50,33 @@ export async function exportToExcel(data: ScheduleData): Promise<void> {
   
   // Build the employee-project to week-hours mapping
   data.assignments.forEach(assign => {
-    const employee = data.employees.find(e => e.id === assign.employeeId)
-    const project = data.projects.find(p => p.id === assign.projectId)
-    
-    if (employee && project) {
-      const key = `${employee.name}|${project.name}`
-      // Use the date field if available (yyyy-MM-dd format), otherwise fall back to week
-      const weekKey = assign.date || assign.week
+    // Check if this is a placeholder assignment
+    const isPlaceholder = assign.employeeId && (
+      assign.employeeId === 'Placeholder' ||
+      assign.employeeId.startsWith('Placeholder ')
+    )
+
+    let employeeName: string | undefined
+    let projectName: string | undefined
+
+    if (isPlaceholder) {
+      // For placeholders, use the employeeId directly as the name
+      employeeName = assign.employeeId
+      const project = data.projects.find(p => p.id === assign.projectId)
+      projectName = project?.name
+    } else {
+      // For regular employees, find them in the employees list
+      const employee = data.employees.find(e => e.id === assign.employeeId)
+      const project = data.projects.find(p => p.id === assign.projectId)
+      employeeName = employee?.name
+      projectName = project?.name
+    }
+
+    if (employeeName && projectName) {
+      const key = `${employeeName}|${projectName}`
+      const weekKey = assign.date
       weekSet.add(weekKey)
-      
+
       if (!assignmentMap.has(key)) {
         assignmentMap.set(key, new Map())
       }
@@ -66,19 +84,11 @@ export async function exportToExcel(data: ScheduleData): Promise<void> {
     }
   })
   
-  // Sort weeks chronologically (works for both yyyy-MM-dd and other formats)
+  // Sort weeks chronologically
   const weeks = Array.from(weekSet).sort((a, b) => {
-    // Try to parse as dates first
     const dateA = new Date(a)
     const dateB = new Date(b)
-    
-    // If both are valid dates, sort chronologically
-    if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
-      return dateA.getTime() - dateB.getTime()
-    }
-    
-    // Otherwise, fall back to string comparison
-    return a.localeCompare(b)
+    return dateA.getTime() - dateB.getTime()
   })
   
   // Create the cross-tab data
@@ -103,7 +113,6 @@ export async function exportToExcel(data: ScheduleData): Promise<void> {
     XLSX.utils.book_append_sheet(wb, ws3, 'Assignments')
   }
 
-  // Note: Skills sheet removed per requirements
 
   // Generate and download file
   const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
