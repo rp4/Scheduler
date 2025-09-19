@@ -107,9 +107,8 @@ export function validateAssignment(assignment: any, index: number, employees: Em
   
   // Check employee reference
   const employeeRef = assignment['Employee ID'] || assignment.Employee || assignment.employee || assignment.employeeId
-  if (!employeeRef) {
-    errors.push(`Row ${index + 2}: Assignment missing employee reference`)
-  } else {
+  // Allow blank employee for placeholder assignments
+  if (employeeRef) {
     // Check if this is a placeholder assignment
     const isPlaceholder = employeeRef === 'Placeholder' ||
                          (typeof employeeRef === 'string' && employeeRef.startsWith('Placeholder '))

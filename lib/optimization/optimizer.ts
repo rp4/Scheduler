@@ -42,10 +42,10 @@ export async function optimizeSchedule(
   // Pre-compute skill score matrix for performance
   const skillScoreMatrix = createSkillScoreMatrix(data.employees, data.projects)
   
-  // Find all placeholder assignments (including numbered placeholders)
+  // Find all placeholder assignments (including numbered placeholders and empty employee IDs)
   const placeholderAssignments = data.assignments.filter(
-    a => a.employeeId && (
-      a.employeeId === 'Placeholder' || 
+    a => !a.employeeId || (
+      a.employeeId === 'Placeholder' ||
       a.employeeId === 'placeholder' ||
       a.employeeId.startsWith('Placeholder ')  // Handles "Placeholder 1", "Placeholder 2", etc.
     )
@@ -437,8 +437,8 @@ function applysuggestions(
   
   // Keep non-placeholder assignments and unreplaced placeholders
   const filtered = assignments.filter(a => {
-    const isPlaceholder = a.employeeId && (
-      a.employeeId === 'Placeholder' || 
+    const isPlaceholder = !a.employeeId || (
+      a.employeeId === 'Placeholder' ||
       a.employeeId === 'placeholder' ||
       a.employeeId.startsWith('Placeholder ')
     )
