@@ -110,12 +110,18 @@ export function validateAssignment(assignment: any, index: number, employees: Em
   if (!employeeRef) {
     errors.push(`Row ${index + 2}: Assignment missing employee reference`)
   } else {
-    // Verify employee exists
-    const employeeExists = employees.some(e => 
-      e.id === employeeRef || e.name === employeeRef
-    )
-    if (!employeeExists) {
-      errors.push(`Row ${index + 2}: Employee not found: ${employeeRef}`)
+    // Check if this is a placeholder assignment
+    const isPlaceholder = employeeRef === 'Placeholder' ||
+                         (typeof employeeRef === 'string' && employeeRef.startsWith('Placeholder '))
+
+    if (!isPlaceholder) {
+      // Verify employee exists (only for non-placeholder assignments)
+      const employeeExists = employees.some(e =>
+        e.id === employeeRef || e.name === employeeRef
+      )
+      if (!employeeExists) {
+        errors.push(`Row ${index + 2}: Employee not found: ${employeeRef}`)
+      }
     }
   }
   

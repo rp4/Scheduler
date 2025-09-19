@@ -4,10 +4,6 @@ import { generateId } from '@/lib/utils'
 import { normalizeDateToWeek, parseFlexibleDate } from '@/lib/date-utils'
 import { validateExcelData } from './validator'
 
-// Wrapper function for backward compatibility
-function normalizeDateToMonday(dateValue: any): { date: string, week: string } {
-  return normalizeDateToWeek(dateValue)
-}
 
 export async function parseExcelFile(file: File): Promise<ScheduleData> {
   return new Promise((resolve, reject) => {
@@ -139,12 +135,22 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
         
         // Try to find employee by ID first, then by name
         let employeeId = employeeIdOrName
-        const employeeById = result.employees.find(e => e.id === employeeIdOrName)
-        const employeeByName = result.employees.find(e => e.name === employeeIdOrName)
-        
-        if (!employeeById && employeeByName) {
-          employeeId = employeeByName.id
+
+        // Check if this is a placeholder assignment (e.g., "Placeholder 1", "Placeholder 2", etc.)
+        const isPlaceholder = employeeIdOrName && (
+          employeeIdOrName === 'Placeholder' ||
+          employeeIdOrName.startsWith('Placeholder ')
+        )
+
+        if (!isPlaceholder) {
+          const employeeById = result.employees.find(e => e.id === employeeIdOrName)
+          const employeeByName = result.employees.find(e => e.name === employeeIdOrName)
+
+          if (!employeeById && employeeByName) {
+            employeeId = employeeByName.id
+          }
         }
+        // For placeholders, keep the original name as the employeeId
         
         // Try to find project by ID first, then by name
         let projectId = projectIdOrName
@@ -159,7 +165,7 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
         dateColumns.forEach(dateCol => {
           const hours = row[dateCol]
           if (hours && Number(hours) > 0) {
-            const { date, week } = normalizeDateToMonday(dateCol)
+            const { date, week } = normalizeDateToWeek(dateCol)
             
             const assignment: Assignment = {
               id: generateId(),
@@ -178,24 +184,33 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
       // Traditional format: Each row is one assignment
       result.assignments = sheet.map((row: any, _index: number) => {
         // Check all possible column names for week/date
-        const rawDate = row.Week || row['Week'] || row.Date || row['Date'] || row.week || row.date
-        const { date, week } = normalizeDateToMonday(rawDate)
+        const rawDate = row.Week || row['Week'] || row.Date || row['Date']
+        const { date, week } = normalizeDateToWeek(rawDate)
         
-        // Parse hours with better handling
-        const rawHours = row.Hours || row['Hours'] || row.hours || 0
-        const parsedHours = typeof rawHours === 'string' ? parseFloat(rawHours) || 0 : Number(rawHours) || 0
+        const rawHours = row.Hours || row['Hours'] || 0
+        const parsedHours = Number(rawHours) || 0
         
-        const employeeIdOrName = row['Employee ID'] || row.Employee || row['Employee'] || row['employee'] || ''
-        const projectIdOrName = row['Project ID'] || row.Project || row['Project'] || row['project'] || ''
+        const employeeIdOrName = row['Employee ID'] || row.Employee || row['Employee'] || ''
+        const projectIdOrName = row['Project ID'] || row.Project || row['Project'] || ''
         
         // Try to find employee by ID first, then by name
         let employeeId = employeeIdOrName
-        const employeeById = result.employees.find(e => e.id === employeeIdOrName)
-        const employeeByName = result.employees.find(e => e.name === employeeIdOrName)
-        
-        if (!employeeById && employeeByName) {
-          employeeId = employeeByName.id
+
+        // Check if this is a placeholder assignment (e.g., "Placeholder 1", "Placeholder 2", etc.)
+        const isPlaceholder = employeeIdOrName && (
+          employeeIdOrName === 'Placeholder' ||
+          employeeIdOrName.startsWith('Placeholder ')
+        )
+
+        if (!isPlaceholder) {
+          const employeeById = result.employees.find(e => e.id === employeeIdOrName)
+          const employeeByName = result.employees.find(e => e.name === employeeIdOrName)
+
+          if (!employeeById && employeeByName) {
+            employeeId = employeeByName.id
+          }
         }
+        // For placeholders, keep the original name as the employeeId
         
         // Try to find project by ID first, then by name
         let projectId = projectIdOrName
@@ -211,11 +226,9 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
           employeeId: employeeId,
           projectId: projectId,
           hours: parsedHours,
-          week: week,  // Keep for backwards compatibility
-          date: date   // New: Store full date in yyyy-MM-dd format
+          week: week,
+          date: date
         }
-        
-        // Assignment created
         
         return assignment
       })

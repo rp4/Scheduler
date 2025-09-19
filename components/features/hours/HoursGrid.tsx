@@ -18,6 +18,8 @@ export const HoursGrid = React.memo(function HoursGrid() {
   const [viewMode, setViewMode] = useState<ViewMode>('employee')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [addingToRow, setAddingToRow] = useState<string | null>(null)
+  const [editingProjectFor, setEditingProjectFor] = useState<{ employeeId: string, projectId: string } | null>(null)
+  const [editingEmployeeFor, setEditingEmployeeFor] = useState<{ projectId: string, employeeId: string } | null>(null)
   const [sortMode, setSortMode] = useState<'none' | 'overtime' | 'utilization'>('none')
   const tableRef = useRef<HTMLDivElement>(null)
   const hasScrolledToCurrentWeek = useRef(false)
@@ -722,7 +724,88 @@ export const HoursGrid = React.memo(function HoursGrid() {
                         <td className="pl-12 p-2 border border-gray-200 sticky left-0 bg-gray-50 text-gray-600 text-sm">
                           <span className="flex items-center gap-2">
                             <span className="text-gray-400">↳</span>
-                            {project.name}
+                            <div
+                              className="relative"
+                              onMouseEnter={() => setEditingProjectFor({ employeeId: employee.id, projectId: project.id })}
+                              onMouseLeave={() => setEditingProjectFor(null)}
+                            >
+                              {editingProjectFor?.employeeId === employee.id && editingProjectFor?.projectId === project.id ? (
+                                <select
+                                  className="w-full px-1 py-0 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white cursor-pointer hover:border-blue-400"
+                                  style={{ minWidth: '100px' }}
+                                  value={project.id}
+                                  onChange={(e) => {
+                                  const newProjectId = e.target.value
+                                  if (newProjectId && newProjectId !== project.id) {
+                                    // Get the new project
+                                    const newProject = filteredData.projects.find(p => p.id === newProjectId)
+                                    if (!newProject) return
+
+                                    // Find all assignments for this employee-project combination
+                                    const assignmentsToTransfer = filteredData.assignments.filter(a =>
+                                      (a.employeeId === employee.id || a.employeeId === employee.name) &&
+                                      (a.projectId === project.id || a.projectId === project.name)
+                                    )
+
+                                    // Transfer each assignment to the new project
+                                    assignmentsToTransfer.forEach(assignment => {
+                                      // Parse the week from the assignment
+                                      const weekDate = assignment.date
+                                        ? new Date(assignment.date)
+                                        : weeks.find(w => formatWeek(w) === assignment.week)
+
+                                      if (weekDate && isWeekInProjectRange(weekDate, newProject)) {
+                                        // Check if there's already an assignment for the new project at this week
+                                        const existingNewAssignment = filteredData.assignments.find(a =>
+                                          (a.employeeId === employee.id || a.employeeId === employee.name) &&
+                                          (a.projectId === newProjectId || a.projectId === newProject.name) &&
+                                          (a.date === assignment.date || (!a.date && a.week === assignment.week))
+                                        )
+
+                                        if (existingNewAssignment) {
+                                          // Update existing assignment by adding hours
+                                          updateAssignment(existingNewAssignment.id, {
+                                            hours: existingNewAssignment.hours + assignment.hours
+                                          })
+                                        } else {
+                                          // Create new assignment for the new project
+                                          addAssignment({
+                                            id: generateId(),
+                                            employeeId: assignment.employeeId,
+                                            projectId: newProjectId,
+                                            week: assignment.week,
+                                            date: assignment.date,
+                                            hours: assignment.hours
+                                          })
+                                        }
+                                      }
+
+                                      // Remove the old assignment
+                                      removeAssignment(assignment.id)
+                                    })
+                                    }
+                                    setEditingProjectFor(null)
+                                  }}
+                                >
+                                  <option value={project.id}>{project.name}</option>
+                                  {filteredData.projects
+                                    .filter(p =>
+                                      p.id !== project.id &&
+                                      !employeeProjects.some(ep => ep.id === p.id)
+                                    )
+                                    .map(p => (
+                                      <option key={p.id} value={p.id}>
+                                        {p.name}
+                                      </option>
+                                    ))
+                                  }
+                                </select>
+                              ) : (
+                                <span className="block hover:text-blue-600 hover:underline transition-colors cursor-pointer" style={{ minWidth: '100px' }}>
+                                  {project.name}
+                                </span>
+                              )}
+                            </div>
                           </span>
                         </td>
                         <td className="p-2 border border-gray-200"></td>
@@ -1005,8 +1088,142 @@ export const HoursGrid = React.memo(function HoursGrid() {
                         <td className="pl-12 p-2 border border-gray-200 sticky left-0 bg-gray-50 text-gray-600 text-sm">
                           <span className="flex items-center gap-2">
                             <span className="text-gray-400">↳</span>
-                            {employee.name}
-                            <span className="text-xs text-gray-500">({employee.team})</span>
+                            <div
+                              className="relative flex-1"
+                              onMouseEnter={() => setEditingEmployeeFor({ projectId: project.id, employeeId: employee.id })}
+                              onMouseLeave={() => setEditingEmployeeFor(null)}
+                              style={{ minWidth: '150px' }}
+                            >
+                              {editingEmployeeFor?.projectId === project.id && editingEmployeeFor?.employeeId === employee.id ? (
+                                <select
+                                  className="w-full px-1 py-0 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white cursor-pointer hover:border-blue-400"
+                                  value={employee.id}
+                                  onChange={(e) => {
+                                  const newEmployeeId = e.target.value
+                                  if (newEmployeeId && newEmployeeId !== employee.id) {
+                                    // Handle placeholder selection
+                                    if (newEmployeeId === 'new_placeholder') {
+                                      // Find existing placeholder assignments for this project
+                                      const existingPlaceholders = filteredData.assignments
+                                        .filter(a => a.employeeId && a.employeeId.startsWith('Placeholder') &&
+                                               (a.projectId === project.id || a.projectId === project.name))
+                                        .map(a => a.employeeId)
+
+                                      const uniquePlaceholders = Array.from(new Set(existingPlaceholders))
+                                      const placeholderNumbers = uniquePlaceholders
+                                        .filter(id => id.startsWith('Placeholder '))
+                                        .map(id => {
+                                          const match = id.match(/Placeholder (\d+)/)
+                                          return match ? parseInt(match[1]) : 0
+                                        })
+
+                                      const nextNumber = placeholderNumbers.length > 0
+                                        ? Math.max(...placeholderNumbers) + 1
+                                        : 1
+
+                                      const newPlaceholderName = `Placeholder ${nextNumber}`
+
+                                      // Transfer all assignments from old employee to new placeholder
+                                      const assignmentsToTransfer = employee.id.startsWith('placeholder_')
+                                        ? filteredData.assignments.filter(a =>
+                                            a.employeeId === employee.name &&
+                                            (a.projectId === project.id || a.projectId === project.name)
+                                          )
+                                        : filteredData.assignments.filter(a =>
+                                            (a.employeeId === employee.id || a.employeeId === employee.name) &&
+                                            (a.projectId === project.id || a.projectId === project.name)
+                                          )
+
+                                      assignmentsToTransfer.forEach(assignment => {
+                                        // Create new assignment for placeholder
+                                        addAssignment({
+                                          id: generateId(),
+                                          employeeId: newPlaceholderName,
+                                          projectId: assignment.projectId,
+                                          week: assignment.week,
+                                          date: assignment.date,
+                                          hours: assignment.hours
+                                        })
+                                        // Remove old assignment
+                                        removeAssignment(assignment.id)
+                                      })
+                                    } else {
+                                      // Get the new employee
+                                      const newEmployee = filteredData.employees.find(e => e.id === newEmployeeId)
+                                      if (!newEmployee) return
+
+                                      // Find all assignments for this employee-project combination
+                                      const assignmentsToTransfer = employee.id.startsWith('placeholder_')
+                                        ? filteredData.assignments.filter(a =>
+                                            a.employeeId === employee.name &&
+                                            (a.projectId === project.id || a.projectId === project.name)
+                                          )
+                                        : filteredData.assignments.filter(a =>
+                                            (a.employeeId === employee.id || a.employeeId === employee.name) &&
+                                            (a.projectId === project.id || a.projectId === project.name)
+                                          )
+
+                                      // Transfer each assignment to the new employee
+                                      assignmentsToTransfer.forEach(assignment => {
+                                        // Check if new employee already has an assignment for this project and week
+                                        const existingNewAssignment = filteredData.assignments.find(a =>
+                                          (a.employeeId === newEmployeeId || a.employeeId === newEmployee.name) &&
+                                          (a.projectId === project.id || a.projectId === project.name) &&
+                                          (a.date === assignment.date || (!a.date && a.week === assignment.week))
+                                        )
+
+                                        if (existingNewAssignment) {
+                                          // Update existing assignment by adding hours
+                                          updateAssignment(existingNewAssignment.id, {
+                                            hours: existingNewAssignment.hours + assignment.hours
+                                          })
+                                        } else {
+                                          // Create new assignment for the new employee
+                                          addAssignment({
+                                            id: generateId(),
+                                            employeeId: assignment.employeeId.startsWith('Placeholder') ? newEmployeeId : assignment.employeeId.includes(employee.name) ? newEmployee.name : newEmployeeId,
+                                            projectId: assignment.projectId,
+                                            week: assignment.week,
+                                            date: assignment.date,
+                                            hours: assignment.hours
+                                          })
+                                        }
+
+                                        // Remove the old assignment
+                                        removeAssignment(assignment.id)
+                                      })
+                                    }
+                                    }
+                                    setEditingEmployeeFor(null)
+                                  }}
+                                >
+                                  <option value={employee.id}>
+                                    {employee.name}{employee.id.startsWith('placeholder_') ? '' : ` (${employee.team})`}
+                                  </option>
+                                  <option value="new_placeholder" className="font-semibold text-blue-600">
+                                    Create New Placeholder
+                                  </option>
+                                  <optgroup label="Available Employees">
+                                    {filteredData.employees
+                                      .filter(e =>
+                                        !projectEmployees.some(pe => pe.id === e.id) ||
+                                        placeholderEmployees.some(pe => pe.id === e.id)
+                                      )
+                                      .map(e => (
+                                        <option key={e.id} value={e.id}>
+                                          {e.name} ({e.team})
+                                        </option>
+                                      ))
+                                    }
+                                  </optgroup>
+                                </select>
+                              ) : (
+                                <span className="block hover:text-blue-600 hover:underline transition-colors cursor-pointer">
+                                  {employee.name}
+                                  <span className="text-xs text-gray-500 ml-1">({employee.team})</span>
+                                </span>
+                              )}
+                            </div>
                           </span>
                         </td>
                         {weeks.map((week, weekIndex) => {

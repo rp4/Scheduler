@@ -53,14 +53,16 @@ describe('Skills Matching Optimization', () => {
       employeeId: 'emp1',
       projectId: 'proj1',
       hours: 20,
-      week: '2024-W01'
+      week: '2024-W01',
+      date: '2024-01-01'
     },
     {
       id: 'assign2',
       employeeId: 'emp2',
       projectId: 'proj2',
       hours: 15,
-      week: '2024-W01'
+      week: '2024-W01',
+      date: '2024-01-01'
     }
   ]
 
@@ -92,7 +94,7 @@ describe('Skills Matching Optimization', () => {
           employeeId: 'nonexistent',
           projectId: 'proj1',
           hours: 10,
-          week: '2024-W01'
+          week: '2024-W01', date: '2024-01-01'
         }
       ]
       
@@ -197,7 +199,8 @@ describe('Skills Matching Optimization', () => {
           employeeId: `emp${i % 100}`,
           projectId: `proj${i % 50}`,
           hours: 10,
-          week: '2024-W01'
+          week: '2024-W01',
+          date: '2024-01-01'
         })
       }
       
@@ -285,8 +288,8 @@ describe('Resource Utilization Calculation', () => {
     ]
     
     const assignments: Assignment[] = [
-      { id: '1', employeeId: 'john', projectId: 'p1', hours: 10, week: 'week1' },
-      { id: '2', employeeId: 'john', projectId: 'p1', hours: 50, week: 'week2' }
+      { id: '1', employeeId: 'john', projectId: 'p1', hours: 10, week: 'week1', date: '2024-01-01' },
+      { id: '2', employeeId: 'john', projectId: 'p1', hours: 50, week: 'week2', date: '2024-01-08' }
     ]
     
     const utilization = calculateResourceUtilization(employees, assignments)
@@ -300,10 +303,10 @@ describe('Resource Utilization Calculation', () => {
     ]
     
     const assignments: Assignment[] = [
-      { id: '1', employeeId: 'john', projectId: 'p1', hours: 20, week: 'week1' },
-      { id: '2', employeeId: 'john', projectId: 'p1', hours: 20, week: 'week2' },
-      { id: '3', employeeId: 'jane', projectId: 'p1', hours: 15, week: 'week1' },
-      { id: '4', employeeId: 'jane', projectId: 'p1', hours: 15, week: 'week2' }
+      { id: '1', employeeId: 'john', projectId: 'p1', hours: 20, week: 'week1', date: '2024-01-01' },
+      { id: '2', employeeId: 'john', projectId: 'p1', hours: 20, week: 'week2', date: '2024-01-08' },
+      { id: '3', employeeId: 'jane', projectId: 'p1', hours: 15, week: 'week1', date: '2024-01-01' },
+      { id: '4', employeeId: 'jane', projectId: 'p1', hours: 15, week: 'week2', date: '2024-01-08' }
     ]
     
     // Total assigned: 20 + 20 + 15 + 15 = 70
@@ -328,7 +331,7 @@ describe('Resource Utilization Calculation', () => {
     ]
     
     const assignments: Assignment[] = [
-      { id: '1', employeeId: 'john', projectId: 'p1', hours: 30, week: 'week1' }
+      { id: '1', employeeId: 'john', projectId: 'p1', hours: 30, week: 'week1', date: '2024-01-01' }
     ]
     
     // Total assigned: 30
@@ -396,7 +399,8 @@ describe('Resource Utilization Calculation', () => {
         employeeId: `emp${i % 1000}`,
         projectId: `proj${i % 100}`,
         hours: Math.floor(Math.random() * 40),
-        week: `week${(i % 52) + 1}`
+        week: `week${(i % 52) + 1}`,
+        date: `2024-01-${String((i % 52) + 1).padStart(2, '0')}`
       })
     }
     
