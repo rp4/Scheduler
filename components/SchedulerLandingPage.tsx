@@ -156,7 +156,7 @@ export function SchedulerLandingPage({
             {/* Footer links */}
             <div className="flex items-center justify-center gap-6 mt-8">
               <a
-                href="https://github.com"
+                href="https://github.com/rp4/Scheduler"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-600 hover:text-gray-900 transition-all hover:scale-110"
