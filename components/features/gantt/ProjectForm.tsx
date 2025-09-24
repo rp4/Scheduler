@@ -39,6 +39,8 @@ export function ProjectForm({
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set())
+  const [color, setColor] = useState('#dbeafe')
+  const [budgetHours, setBudgetHours] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
@@ -70,6 +72,8 @@ export function ProjectForm({
       setStartDate(format(new Date(project.startDate), 'yyyy-MM-dd'))
       setEndDate(format(new Date(project.endDate), 'yyyy-MM-dd'))
       setSelectedSkills(new Set(project.requiredSkills || []))
+      setColor(project.color || '#dbeafe')
+      setBudgetHours(project.budgetHours ? project.budgetHours.toString() : '')
       setErrors({})
     } else if (mode === 'add' && isOpen) {
       // Reset form for add mode when opening
@@ -77,6 +81,8 @@ export function ProjectForm({
       setStartDate('')
       setEndDate('')
       setSelectedSkills(new Set())
+      setColor('#dbeafe')
+      setBudgetHours('')
       setErrors({})
     }
   }, [project, mode, isOpen])
@@ -101,7 +107,11 @@ export function ProjectForm({
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       newErrors.endDate = 'End date must be after start date'
     }
-    
+
+    if (budgetHours && (isNaN(Number(budgetHours)) || Number(budgetHours) < 0)) {
+      newErrors.budgetHours = 'Budget hours must be a positive number'
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       return
@@ -111,7 +121,9 @@ export function ProjectForm({
       name: name.trim(),
       startDate: new Date(startDate),
       endDate: new Date(endDate),
-      requiredSkills: Array.from(selectedSkills)
+      requiredSkills: Array.from(selectedSkills),
+      color: color,
+      budgetHours: budgetHours ? Number(budgetHours) : undefined
     }
     
     // Add project ID for edit mode
@@ -126,6 +138,8 @@ export function ProjectForm({
     setStartDate('')
     setEndDate('')
     setSelectedSkills(new Set())
+    setColor('#dbeafe')
+    setBudgetHours('')
     setErrors({})
     setOpen(false)
   }
@@ -135,6 +149,8 @@ export function ProjectForm({
     setStartDate('')
     setEndDate('')
     setSelectedSkills(new Set())
+    setColor('#dbeafe')
+    setBudgetHours('')
     setErrors({})
     setShowDeleteConfirm(false)
     setOpen(false)
@@ -263,7 +279,67 @@ export function ProjectForm({
                 <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>
               )}
             </div>
-            
+
+            <div>
+              <label htmlFor="project-color" className="block text-sm font-medium text-gray-700 mb-1">
+                Project Color
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="project-color"
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="h-10 w-20 border border-gray-300 rounded cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={color}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (/^#[0-9A-Fa-f]{0,6}$/.test(value)) {
+                      setColor(value)
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="#dbeafe"
+                />
+                <button
+                  type="button"
+                  onClick={() => setColor('#dbeafe')}
+                  className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="budget-hours" className="block text-sm font-medium text-gray-700 mb-1">
+                Budget Hours
+              </label>
+              <input
+                id="budget-hours"
+                type="number"
+                value={budgetHours}
+                onChange={(e) => {
+                  setBudgetHours(e.target.value)
+                  if (errors.budgetHours) {
+                    setErrors({ ...errors, budgetHours: '' })
+                  }
+                }}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.budgetHours ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Enter budget hours (optional)"
+                min="0"
+                step="1"
+              />
+              {errors.budgetHours && (
+                <p className="mt-1 text-sm text-red-600">{errors.budgetHours}</p>
+              )}
+            </div>
+
             {/* Required Skills */}
             {availableSkills.length > 0 && (
               <div>

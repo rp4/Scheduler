@@ -14,6 +14,8 @@ export interface Project {
   endDate: Date
   requiredSkills?: string[]
   portfolio?: string
+  color?: string
+  budgetHours?: number
 }
 
 export interface Assignment {

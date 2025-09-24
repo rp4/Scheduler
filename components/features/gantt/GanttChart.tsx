@@ -129,21 +129,24 @@ export const GanttChart = React.memo(function GanttChart() {
       return []
     }
     
-    const projectTasks = filteredProjects.map(project => ({
-      start: new Date(project.startDate),
-      end: new Date(project.endDate),
-      name: project.name,
-      id: project.id,
-      type: 'task' as const, // Use 'task' instead of 'project' for better dragging
-      progress: 0, // No progress bars
-      isDisabled: false,
-      styles: {
-        backgroundColor: '#dbeafe', // Light blue matching bg-blue-50
-        backgroundSelectedColor: '#dbeafe', // Same color when selected
-        progressColor: 'transparent', // Hide progress bar
-        progressSelectedColor: 'transparent' // Hide progress bar when selected
+    const projectTasks = filteredProjects.map(project => {
+      const projectColor = project.color || '#dbeafe' // Use project color or default light blue
+      return {
+        start: new Date(project.startDate),
+        end: new Date(project.endDate),
+        name: project.name,
+        id: project.id,
+        type: 'task' as const, // Use 'task' instead of 'project' for better dragging
+        progress: 0, // No progress bars
+        isDisabled: false,
+        styles: {
+          backgroundColor: projectColor,
+          backgroundSelectedColor: projectColor, // Same color when selected
+          progressColor: 'transparent', // Hide progress bar
+          progressSelectedColor: 'transparent' // Hide progress bar when selected
+        }
       }
-    }))
+    })
     
     // Add invisible boundary markers if date range filter is active
     if (dateRangeFilter) {
@@ -470,15 +473,14 @@ export const GanttChart = React.memo(function GanttChart() {
           stroke-width: 2;
         }
         
-        /* Task bars - ensure solid color */
+        /* Task bars - ensure solid color with rounded corners */
         .gantt-container rect.barBackground {
-          fill: #dbeafe !important;
           rx: 4;
         }
-        
-        /* Selected task bars - same color */
+
+        /* Selected task bars - keep same color as unselected */
         .gantt-container rect.barBackgroundSelected {
-          fill: #dbeafe !important;
+          /* Color will be set via inline styles */
         }
         
         /* Hide progress bars */

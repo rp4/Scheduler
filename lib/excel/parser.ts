@@ -99,10 +99,12 @@ function parseWorkbook(workbook: XLSX.WorkBook): ScheduleData {
       name: row.Name || row.Project || '',
       startDate: parseFlexibleDate(row['Start Date']) || new Date(),
       endDate: parseFlexibleDate(row['End Date']) || new Date(),
-      requiredSkills: row['Required Skills'] 
+      requiredSkills: row['Required Skills']
         ? String(row['Required Skills']).split(',').map(s => s.trim())
         : [],
       portfolio: row.Portfolio || '',
+      color: row.Color || undefined,
+      budgetHours: row['Budget Hours'] ? Number(row['Budget Hours']) : undefined,
     }))
   }
 

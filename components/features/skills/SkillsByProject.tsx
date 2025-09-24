@@ -6,7 +6,7 @@ import { useScheduleStore } from '@/store/useScheduleStore'
 export function SkillsByProject() {
   const { employees, projects, assignments } = useScheduleStore()
 
-  const { projectSkillMatrix, allSkills } = useMemo(() => {
+  const { projectSkillMatrix, allSkills, maxValue } = useMemo(() => {
     // Create employee maps for fast lookup (both by ID and by name)
     const employeeMap = new Map<string, typeof employees[0]>()
     employees.forEach(emp => {
@@ -74,8 +74,33 @@ export function SkillsByProject() {
       }
     })
 
-    return { projectSkillMatrix: matrix, allSkills: sortedSkills }
+    // Find the maximum value across all cells for color scaling
+    let max = 0
+    matrix.forEach(projectRow => {
+      projectRow.forEach(value => {
+        if (value > max) max = value
+      })
+    })
+
+    return { projectSkillMatrix: matrix, allSkills: sortedSkills, maxValue: max }
   }, [employees, projects, assignments])
+
+  // Helper function to calculate heatmap color
+  const getHeatmapColor = (value: number | undefined, isRequired: boolean): string => {
+    if (!isRequired || value === undefined) return ''
+
+    // For 0 values, return red
+    if (value === 0) return 'rgba(239, 68, 68, 0.2)' // red-500 with opacity
+
+    // For values between 0 and max, interpolate between red and green
+    if (maxValue === 0) return ''
+
+    const ratio = value / maxValue
+    // Interpolate between red and green
+    const red = Math.round(255 * (1 - ratio))
+    const green = Math.round(255 * ratio)
+    return `rgba(${red}, ${green}, 0, 0.2)`
+  }
 
   if (projects.length === 0) {
     return (
@@ -144,15 +169,18 @@ export function SkillsByProject() {
                     : '-'
 
                   return (
-                    <td 
-                      key={skill} 
+                    <td
+                      key={skill}
                       className={`px-4 py-2 text-center text-sm ${
-                        isRequired 
-                          ? points === 0 
-                            ? 'text-red-600 font-medium' 
+                        isRequired
+                          ? points === 0
+                            ? 'text-red-600 font-medium'
                             : 'text-gray-900'
                           : 'text-gray-400'
                       }`}
+                      style={{
+                        backgroundColor: getHeatmapColor(points, isRequired)
+                      }}
                     >
                       {displayValue}
                     </td>

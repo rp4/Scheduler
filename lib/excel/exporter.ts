@@ -36,6 +36,8 @@ export async function exportToExcel(data: ScheduleData): Promise<void> {
     'End Date': formatDate(proj.endDate),
     'Required Skills': proj.requiredSkills?.join(', ') || '',
     Portfolio: proj.portfolio || '',
+    Color: proj.color || '',
+    'Budget Hours': proj.budgetHours || '',
   }))
   
   if (projectsData.length > 0) {

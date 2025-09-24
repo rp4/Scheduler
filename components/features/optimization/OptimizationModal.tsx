@@ -28,21 +28,60 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
   })
 
   // Get data from store with proper selectors
-  const employees = useScheduleStore((state) => state.employees)
-  const projects = useScheduleStore((state) => state.projects)
-  const assignments = useScheduleStore((state) => state.assignments)
+  const allEmployees = useScheduleStore((state) => state.employees)
+  const allProjects = useScheduleStore((state) => state.projects)
+  const allAssignments = useScheduleStore((state) => state.assignments)
   const skills = useScheduleStore((state) => state.skills)
   const teams = useScheduleStore((state) => state.teams)
   const dateRange = useScheduleStore((state) => state.dateRange)
-  
-  // Memoize the schedule data object
+  const selectedTeam = useScheduleStore((state) => state.selectedTeam)
+
+  // Filter data based on selected team
+  const filteredData = useMemo(() => {
+    let employees = allEmployees
+    let projects = allProjects
+    let assignments = allAssignments
+
+    // Apply team filter if not "All Teams"
+    if (selectedTeam !== 'All Teams') {
+      // Filter employees by team
+      employees = allEmployees.filter(e => e.team === selectedTeam)
+      const teamEmployeeIds = new Set(employees.map(e => e.id))
+
+      // Find projects that have assignments from team members
+      const projectsWithTeamMembers = new Set<string>()
+      allAssignments.forEach(a => {
+        const employee = allEmployees.find(e => e.id === a.employeeId || e.name === a.employeeId)
+        if (employee && teamEmployeeIds.has(employee.id)) {
+          projectsWithTeamMembers.add(a.projectId)
+          const project = allProjects.find(p => p.id === a.projectId || p.name === a.projectId)
+          if (project) {
+            projectsWithTeamMembers.add(project.id)
+          }
+        }
+      })
+
+      // Filter projects that team members work on
+      projects = allProjects.filter(p =>
+        projectsWithTeamMembers.has(p.id) || projectsWithTeamMembers.has(p.name)
+      )
+
+      // Filter assignments to only include those for filtered projects
+      const filteredProjectIds = new Set(projects.map(p => p.id))
+      assignments = allAssignments.filter(a => filteredProjectIds.has(a.projectId))
+    }
+
+    return { employees, projects, assignments }
+  }, [allEmployees, allProjects, allAssignments, selectedTeam])
+
+  // Memoize the schedule data object with filtered data
   const scheduleData = useMemo(() => ({
-    employees,
-    projects,
-    assignments,
+    employees: filteredData.employees,
+    projects: filteredData.projects,
+    assignments: filteredData.assignments,
     skills: skills || [],
     teams: teams || [],
-  }), [employees, projects, assignments, skills, teams])
+  }), [filteredData, skills, teams])
 
   const handleOptimize = async () => {
     setIsOptimizing(true)
@@ -82,32 +121,32 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
   
   const handleApply = () => {
     if (!results) return
-    
+
     // Create a set of replaced placeholders for efficient lookup
     const replacedPlaceholders = new Set<string>()
     results.suggestions.forEach(suggestion => {
       // Create a unique key for each placeholder that was replaced
       replacedPlaceholders.add(`${suggestion.projectId}-${suggestion.week}`)
     })
-    
-    // Keep non-placeholder assignments and unreplaced placeholders
-    const filtered = scheduleData.assignments.filter(a => {
+
+    // Keep non-placeholder assignments and unreplaced placeholders from ALL assignments
+    const filtered = allAssignments.filter(a => {
       const isPlaceholder = !a.employeeId || (
         a.employeeId === 'Placeholder' ||
         a.employeeId === 'placeholder' ||
         a.employeeId.startsWith('Placeholder ')
       )
-      
+
       if (!isPlaceholder) {
         // Keep all non-placeholder assignments
         return true
       }
-      
+
       // For placeholders, check if they were replaced
       const placeholderKey = `${a.projectId}-${a.week || a.date}`
       return !replacedPlaceholders.has(placeholderKey)
     })
-    
+
     // Add suggested assignments
     results.suggestions.forEach(suggestion => {
       filtered.push({
@@ -119,15 +158,16 @@ export function OptimizationModal({ onClose }: OptimizationModalProps) {
         hours: suggestion.originalHours,
       })
     })
-    
-    // Update the store
+
+    // Update the store with ALL data (not just filtered)
     useScheduleStore.getState().loadData({
-      ...scheduleData,
+      employees: allEmployees,
+      projects: allProjects,
       assignments: filtered,
       skills: useScheduleStore.getState().skills,
       teams: useScheduleStore.getState().teams,
     })
-    
+
     onClose()
   }
 

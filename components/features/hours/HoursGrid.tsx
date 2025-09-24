@@ -673,15 +673,15 @@ export const HoursGrid = React.memo(function HoursGrid() {
                     <td className="p-3 border border-gray-200 sticky left-0 bg-white">
                       <button
                         onClick={() => toggleExpanded(employee.id)}
-                        className="flex items-center gap-2 w-full text-left hover:text-blue-600"
+                        className="flex items-center gap-2 w-full text-left hover:text-blue-600 whitespace-nowrap"
                       >
                         {employeeProjects.length > 0 && (
-                          isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />
+                          isExpanded ? <ChevronDown className="w-4 h-4 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 flex-shrink-0" />
                         )}
-                        {employeeProjects.length === 0 && <span className="w-4" />}
-                        {employee.name}
+                        {employeeProjects.length === 0 && <span className="w-4 flex-shrink-0" />}
+                        <span className="truncate">{employee.name}</span>
                         {employeeProjects.length > 0 && (
-                          <span className="text-xs text-gray-500 ml-1">({employeeProjects.length} projects)</span>
+                          <span className="text-xs text-gray-500 ml-1 flex-shrink-0">({employeeProjects.length} projects)</span>
                         )}
                       </button>
                     </td>
@@ -801,7 +801,7 @@ export const HoursGrid = React.memo(function HoursGrid() {
                                   }
                                 </select>
                               ) : (
-                                <span className="block hover:text-blue-600 hover:underline transition-colors cursor-pointer" style={{ minWidth: '100px' }}>
+                                <span className="block hover:text-blue-600 hover:underline transition-colors cursor-pointer whitespace-nowrap" style={{ minWidth: '100px' }}>
                                   {project.name}
                                 </span>
                               )}
@@ -962,8 +962,8 @@ export const HoursGrid = React.memo(function HoursGrid() {
                 Project
               </th>
               {monthGroups.map((group, idx) => (
-                <th 
-                  key={idx} 
+                <th
+                  key={idx}
                   colSpan={group.count}
                   className="text-center p-1 border border-gray-200 font-semibold bg-gray-100 text-sm"
                 >
@@ -972,6 +972,9 @@ export const HoursGrid = React.memo(function HoursGrid() {
               ))}
               <th className="text-center p-2 border border-gray-200 font-semibold bg-blue-50" rowSpan={2}>
                 Total
+              </th>
+              <th className="text-center p-2 border border-gray-200 font-semibold bg-green-50" rowSpan={2}>
+                Budget
               </th>
             </tr>
             {/* Day header row */}
@@ -1038,15 +1041,15 @@ export const HoursGrid = React.memo(function HoursGrid() {
                     <td className="p-3 border border-gray-200 sticky left-0 bg-white">
                       <button
                         onClick={() => toggleExpanded(project.id)}
-                        className="flex items-center gap-2 w-full text-left hover:text-blue-600"
+                        className="flex items-center gap-2 w-full text-left hover:text-blue-600 whitespace-nowrap"
                       >
                         {projectEmployees.length > 0 && (
-                          isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />
+                          isExpanded ? <ChevronDown className="w-4 h-4 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 flex-shrink-0" />
                         )}
-                        {projectEmployees.length === 0 && <span className="w-4" />}
-                        {project.name}
+                        {projectEmployees.length === 0 && <span className="w-4 flex-shrink-0" />}
+                        <span className="truncate">{project.name}</span>
                         {projectEmployees.length > 0 && (
-                          <span className="text-xs text-gray-500 ml-1">({projectEmployees.length} people)</span>
+                          <span className="text-xs text-gray-500 ml-1 flex-shrink-0">({projectEmployees.length} people)</span>
                         )}
                       </button>
                     </td>
@@ -1070,8 +1073,11 @@ export const HoursGrid = React.memo(function HoursGrid() {
                     <td className="p-3 border border-gray-200 text-center font-semibold bg-blue-50">
                       {totalHours}
                     </td>
+                    <td className="p-3 border border-gray-200 text-center font-semibold bg-green-50">
+                      {project.budgetHours || '-'}
+                    </td>
                   </tr>
-                  
+
                   {/* Expandable employee rows for this project */}
                   {isExpanded && projectEmployees.map(employee => {
                     const employeeAssignments = employee.id.startsWith('placeholder_') 
@@ -1219,9 +1225,8 @@ export const HoursGrid = React.memo(function HoursGrid() {
                                   </optgroup>
                                 </select>
                               ) : (
-                                <span className="block hover:text-blue-600 hover:underline transition-colors cursor-pointer">
+                                <span className="block hover:text-blue-600 hover:underline transition-colors cursor-pointer whitespace-nowrap">
                                   {employee.name}
-                                  <span className="text-xs text-gray-500 ml-1">({employee.team})</span>
                                 </span>
                               )}
                             </div>
@@ -1334,6 +1339,7 @@ export const HoursGrid = React.memo(function HoursGrid() {
                         <td className="p-2 border border-gray-200 text-center text-sm text-gray-600">
                           {employeeAssignments.reduce((sum, a) => sum + a.hours, 0)}
                         </td>
+                        <td className="p-2 border border-gray-200"></td>
                       </tr>
                     )
                   })}
@@ -1450,7 +1456,7 @@ export const HoursGrid = React.memo(function HoursGrid() {
                           </button>
                         )}
                       </td>
-                      <td className="p-2 border border-gray-200" colSpan={weeks.length + 1}></td>
+                      <td className="p-2 border border-gray-200" colSpan={weeks.length + 2}></td>
                     </tr>
                   )}
                 </React.Fragment>
